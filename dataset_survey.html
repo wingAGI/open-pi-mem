@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MEM 开源数据调研</title>
+  <style>
+    :root {
+      --bg: #f7f4ef;
+      --paper: #fffdf8;
+      --ink: #1f2328;
+      --muted: #5a616a;
+      --accent: #2f5e57;
+      --accent-2: #c77b5a;
+      --border: #e6dfd5;
+      --code-bg: #f1ece4;
+      --ok: #2c7a62;
+      --mid: #c77b5a;
+      --weak: #a14c4c;
+      --chip: #f5efe6;
+    }
+    html, body { margin: 0; padding: 0; background: linear-gradient(180deg, #f3efe8 0%, #f8f6f1 100%); color: var(--ink); }
+    body { font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", serif; line-height: 1.7; }
+    .page {
+      max-width: 1180px;
+      margin: 24px auto 64px;
+      padding: 28px 28px 40px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+    }
+    header { border-bottom: 2px solid var(--border); padding-bottom: 12px; margin-bottom: 20px; }
+    h1 { font-size: 30px; margin: 0 0 8px; color: var(--accent); }
+    h2 { margin: 28px 0 10px; font-size: 21px; color: var(--accent-2); border-left: 4px solid var(--accent-2); padding-left: 10px; }
+    h3 { margin: 16px 0 8px; font-size: 17px; color: var(--accent); }
+    p { margin: 8px 0; }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 16px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid #d6e6e1;
+      background: #eef5f3;
+      color: var(--accent);
+      font-size: 12px;
+      margin-left: 6px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: #fff;
+    }
+    .card strong { color: var(--accent); }
+    .note {
+      background: #fdf3e9;
+      border: 1px solid #f2d6c8;
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: #7a4a34;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+    .chip { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--chip); border: 1px solid var(--border); font-size: 12px; }
+    .ok { color: var(--ok); font-weight: 700; }
+    .mid { color: var(--mid); font-weight: 700; }
+    .weak { color: var(--weak); font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 14px; font-size: 14px; }
+    th, td { border: 1px solid var(--border); padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { background: #f5efe6; }
+    code, pre {
+      font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+      background: var(--code-bg);
+    }
+    pre { padding: 10px 12px; border-radius: 8px; overflow-x: auto; border: 1px solid var(--border); }
+    a { color: #205a7a; }
+    .scorebar {
+      height: 10px; border-radius: 999px; background: #eee5d8; overflow: hidden; margin-top: 6px;
+    }
+    .fill { height: 100%; background: linear-gradient(90deg, #c77b5a, #2f5e57); }
+    @media (max-width: 860px) {
+      .meta, .grid { grid-template-columns: 1fr; }
+      .page { margin: 10px; padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>MEM 复现相关开源数据调研</h1>
+      <div class="meta">
+        <div><strong>主题</strong>：适合构造 MEM 的高层/低层训练数据的数据集</div>
+        <div><strong>生成日期</strong>：2026-03-06 <span class="badge">官方文档核对</span></div>
+        <div><strong>重点问题</strong>：是否有 subtask 标注、是否能拿到 success/failure、原始数据字段长什么样</div>
+        <div><strong>结论导向</strong>：为 open-pi-mem 选高层与低层数据路线</div>
+      </div>
+    </header>
+
+    <h2>一句话结论</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>最适合高层 MEM 标注</h3>
+        <p><strong>Isaac Lab Mimic / SkillGen</strong> 最强，因为它明确围绕 <code>subtask boundary</code>、<code>subtask_term_signal</code>、<code>success flag</code> 组织数据与生成流程。</p>
+        <div class="chips">
+          <span class="chip">subtask: 强</span>
+          <span class="chip">success/failure: 强</span>
+          <span class="chip">机器人: 仿真</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>最适合低层最小实验</h3>
+        <p><strong>DROID</strong> 和 <strong>BridgeData V2</strong> 最现实，因为有真实机器人图像、动作和语言 instruction，但它们通常<strong>没有现成的 episode 内 subtask/success-failure</strong>，需要你额外构造。</p>
+        <div class="chips">
+          <span class="chip">subtask: 弱到中</span>
+          <span class="chip">success/failure: 弱</span>
+          <span class="chip">机器人: 真实</span>
+        </div>
+      </div>
+    </div>
+
+    <h2>总览对比</h2>
+    <table>
+      <tr>
+        <th>数据集</th>
+        <th>类型</th>
+        <th>subtask 可得性</th>
+        <th>success/failure 可得性</th>
+        <th>是否有真实机器人动作</th>
+        <th>更适合 MEM 哪一层</th>
+        <th>结论</th>
+      </tr>
+      <tr>
+        <td>Isaac Lab Mimic</td>
+        <td>仿真机器人</td>
+        <td><span class="ok">强</span>：环境直接围绕 subtask 配置与边界注释设计</td>
+        <td><span class="ok">强</span>：有布尔 success criteria 和每个 subtask 的 term signal</td>
+        <td>有</td>
+        <td>高层优先，也能做低层</td>
+        <td>最适合 MEM 风格数据管线原型</td>
+      </tr>
+      <tr>
+        <td>Isaac Lab SkillGen</td>
+        <td>仿真机器人</td>
+        <td><span class="ok">强</span>：官方给预标注数据，要求 start/term boundaries</td>
+        <td><span class="ok">强</span>：生成时设置 episode success flag，外层过滤成功样本</td>
+        <td>有</td>
+        <td>高层最佳</td>
+        <td>如果目标是最干净的 `[历史子任务 + 成败]`，这是首选</td>
+      </tr>
+      <tr>
+        <td>DROID</td>
+        <td>真实机器人</td>
+        <td><span class="mid">中</span>：有 step-level language instruction，但不是显式 subtask segments</td>
+        <td><span class="weak">弱</span>：有 terminal/reward，但没有子任务级 success 标注</td>
+        <td>有</td>
+        <td>低层最佳；高层需你额外构造</td>
+        <td>最适合真实机器人 low-level 起步</td>
+      </tr>
+      <tr>
+        <td>BridgeData V2</td>
+        <td>真实机器人</td>
+        <td><span class="weak">弱</span>：每条轨迹只有自然语言 instruction</td>
+        <td><span class="weak">弱</span>：官方站点不提供子任务 success/failure</td>
+        <td>有</td>
+        <td>低层</td>
+        <td>适合作为 low-level BC 数据，不适合作为现成高层标注源</td>
+      </tr>
+      <tr>
+        <td>Ego-Exo4D Keystep</td>
+        <td>第一视角人类技能视频</td>
+        <td><span class="ok">强</span>：明确的 segment + step_name + step_description</td>
+        <td><span class="mid">中弱</span>：有 <code>is_essential</code>，但不是 success/failure</td>
+        <td>无</td>
+        <td>高层</td>
+        <td>适合做 step/history/memory 建模，不适合低层机器人动作</td>
+      </tr>
+      <tr>
+        <td>Ego4D Moments / Narrations</td>
+        <td>第一视角长视频</td>
+        <td><span class="mid">中</span>：有带起止时间的 labels 和 summary_text</td>
+        <td><span class="weak">弱</span>：没有任务式 success/failure</td>
+        <td>无</td>
+        <td>高层辅助预训练</td>
+        <td>可用于长时语义压缩，但离 MEM 的机器人高层 supervision 还有距离</td>
+      </tr>
+      <tr>
+        <td>EPIC-KITCHENS</td>
+        <td>第一视角厨房视频</td>
+        <td><span class="mid">中</span>：有大量 action segments 和 narrations</td>
+        <td><span class="weak">弱</span>：没有显式子任务成败</td>
+        <td>无</td>
+        <td>高层辅助预训练</td>
+        <td>适合动作段与叙述建模，不适合直接构造 MEM 的成败历史</td>
+      </tr>
+    </table>
+
+    <h2>推荐路线</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>路线 A：最稳的 MEM 复现路线</h3>
+        <p>高层使用 <strong>Isaac Lab Mimic / SkillGen</strong> 构造 <code>[历史子任务 + 成败] → [next_subtask, next_memory]</code>；低层使用 <strong>DROID</strong> 或 <strong>BridgeData V2</strong> 做真实机器人动作建模。</p>
+        <div class="scorebar"><div class="fill" style="width:92%"></div></div>
+      </div>
+      <div class="card">
+        <h3>路线 B：先做纯高层原型</h3>
+        <p>高层使用 <strong>Ego-Exo4D Keystep</strong> 或 <strong>Ego4D/EPIC</strong> 先验证 memory summary 生成流程，再用少量人工或规则补 success/failure。</p>
+        <div class="scorebar"><div class="fill" style="width:64%"></div></div>
+      </div>
+    </div>
+
+    <h2>数据集逐项说明</h2>
+
+    <h3>1. Isaac Lab Mimic</h3>
+    <p><strong>定位</strong>：Isaac Lab 的 imitation/data generation 工作流。它不是一个单独的“大而全下载数据集”页面，而是一套环境、标注、生成 demo 的机制。对 MEM 来说，它最大的价值是：<strong>官方定义了 subtask、boundary、term signal、success criteria 这些概念本身</strong>。</p>
+    <p><strong>官方证据</strong>：Mimic 文档写明，生成 candidate demonstrations 时使用 <code>boolean success criteria</code> 判断是否成功；成功才加入输出数据集。还要求环境实现 <code>get_subtask_term_signals</code>，返回每个 subtask 是否完成的二值标志。</p>
+    <pre>subtasks: list[SubTaskConfig]
+get_subtask_term_signals() -> dict[subtask_name, bool]
+boolean success criteria -> decide whether episode succeeded</pre>
+    <p><strong>你能直接拿来干什么</strong>：</p>
+    <ul>
+      <li>直接构造 episode 内 subtask boundary</li>
+      <li>直接得到 per-subtask completion signal</li>
+      <li>直接构造 success/failure supervision</li>
+    </ul>
+    <p><strong>真实样例</strong>：官方文档没有直接贴出一条完整 demo row，但明确给了真实任务例子 <code>FrankaCubeStackIKRelMimicEnvCfg</code>，对应的是 Franka 立方体堆叠任务；并要求环境返回类似下面的子任务完成信号：</p>
+    <pre>{
+  get_subtask_term_signals() -> {
+    "grasp_cube": bool,
+    "stack_cube": bool,
+    ...
+  }
+}</pre>
+    <p>官方还明确说明，candidate demonstration 会经过 <code>boolean success criteria</code> 判定是否成功，成功才写入输出数据集。</p>
+    <p><strong>适配 MEM 结论</strong>：如果你要一个最干净的高层监督来源，它比 DROID/Bridge 更合适。</p>
+    <p><strong>来源</strong>：<a href="https://isaac-sim.github.io/IsaacLab/release/2.2.0/source/overview/teleop_imitation.html">Isaac Lab Mimic 文档</a></p>
+
+    <h3>2. Isaac Lab SkillGen</h3>
+    <p><strong>定位</strong>：在 Mimic 基础上，专门围绕技能片段重组和生成设计。官方直接提供一个 <code>annotated_dataset_skillgen.hdf5</code> 示例数据，并明确说包含 <strong>manually annotated subtask boundaries</strong>。</p>
+    <p><strong>具体格式/机制</strong>：</p>
+    <ul>
+      <li>源数据文件：<code>dataset_skillgen.hdf5</code></li>
+      <li>标注后数据文件：<code>annotated_dataset_skillgen.hdf5</code></li>
+      <li>subtask 定义依赖 <code>object_ref</code>、<code>subtask_term_signal</code>、<code>subtask_start_signal</code></li>
+      <li>边界由二值信号 0→1 的跳变定位成 <code>[t_start, t_end]</code></li>
+      <li>数据生成阶段会 <strong>set the episode success flag</strong>，外层流程过滤和消费成功 episode</li>
+    </ul>
+    <pre>{
+  subtask_start_signal: binary 0/1,
+  subtask_term_signal: binary 0/1,
+  subtask boundaries: [t_start, t_end],
+  episode success flag: boolean
+}</pre>
+    <p><strong>真实样例</strong>：官方文档虽然没有直接贴出 HDF5 内单条 JSON row，但给了真实任务级样例和信号定义。SkillGen 文档举的技能片段例子是“抓取一个 cube 时，start signal 在 gripper 闭合前，termination signal 在物体被抓起后”；相关任务是 cube stacking。官方还给了预标注文件名 <code>annotated_dataset_skillgen.hdf5</code>。</p>
+    <pre>{
+  subtask_start_signal: 0 -> 1,
+  subtask_term_signal: 0 -> 1,
+  subtask boundary: [t_start, t_end],
+  episode success flag: bool
+}</pre>
+    <p>相关教程和 MimicGen/SkillGen 任务示例里，真实子任务序列类似：</p>
+    <pre>1. grasp cubeA
+2. place cubeA on cubeB
+3. grasp cubeC
+4. place cubeC on cubeA</pre>
+    <p><strong>适配 MEM 结论</strong>：这是目前最接近你想要的 `[历史子任务 + 成败]` 的官方开源来源。</p>
+    <p><strong>来源</strong>：<a href="https://isaac-sim.github.io/IsaacLab/main/source/overview/imitation-learning/skillgen.html">SkillGen 官方文档</a></p>
+
+    <h3>3. DROID</h3>
+    <p><strong>定位</strong>：大规模真实机器人操作数据集，适合 low-level action learning。官方 RLDS schema 写得很具体。</p>
+    <p><strong>RLDS 关键字段</strong>：</p>
+    <pre>{
+  steps: {
+    is_first, is_last, is_terminal,
+    language_instruction,
+    language_instruction_2,
+    language_instruction_3,
+    observation: {
+      gripper_position,
+      cartesian_position,
+      joint_position,
+      wrist_image_left,
+      exterior_image_1_left,
+      exterior_image_2_left,
+    },
+    action_dict: {...},
+    reward,
+    action
+  }
+}</pre>
+    <p><strong>优点</strong>：</p>
+    <ul>
+      <li>有真实机器人图像、动作、状态</li>
+      <li>有 step-level language instruction</li>
+      <li>有 RLDS 和 raw data 两种形式</li>
+      <li>官方还提供 <code>droid_100</code> 作为 100 个 episode 的调试版本</li>
+    </ul>
+    <p><strong>缺点</strong>：</p>
+    <ul>
+      <li>没有显式 episode 内 subtask segment 标注</li>
+      <li>没有 per-subtask success/failure 标注</li>
+      <li>虽然有 <code>reward</code> 和 <code>is_terminal</code>，但更接近 episode 级或 final-step 级信号，不足以直接还原高层历史</li>
+    </ul>
+    <p><strong>真实样例</strong>：官方 schema 直接给了 RLDS episode 结构，是真实发布格式的一部分：</p>
+    <pre>{
+  "steps": {
+    "is_terminal": true,
+    "language_instruction": "...",
+    "observation": {
+      "gripper_position": ...,
+      "cartesian_position": ...,
+      "joint_position": ...,
+      "wrist_image_left": ...,
+      "exterior_image_1_left": ...
+    },
+    "reward": 1.0,
+    "action": [6x joint velocities, 1x gripper position]
+  }
+}</pre>
+    <p>文档还给了真实可下载调试集：<code>gs://gresearch/robotics/droid_100</code>，这是 100 个 episode 的 RLDS 样例版本。</p>
+    <p><strong>适配 MEM 结论</strong>：非常适合 low-level；高层必须你自己从 instruction、state、reward、retry 中额外构造。</p>
+    <p><strong>来源</strong>：<a href="https://droid-dataset.github.io/droid/the-droid-dataset">DROID Docs</a>、<a href="https://droid-dataset.github.io/">DROID 项目页</a></p>
+
+    <h3>4. BridgeData V2</h3>
+    <p><strong>定位</strong>：真实机器人多任务 manipulation 数据。官方项目页说明每条 trajectory 有自然语言标注。</p>
+    <p><strong>已知官方信息</strong>：</p>
+    <ul>
+      <li>53,896 trajectories</li>
+      <li>13 skills</li>
+      <li>24 environments</li>
+      <li>每条轨迹有一条 natural language instruction</li>
+      <li>控制频率 5Hz，平均 38 steps</li>
+      <li>相机为一个固定 RGBD + 两个随机位姿 RGB，相片 640×480</li>
+    </ul>
+    <pre>{
+  trajectory-level language instruction,
+  image observations,
+  robot actions,
+  avg length: 38 steps,
+  5Hz teleop demos
+}</pre>
+    <p><strong>缺点</strong>：官方页面没有给 episode 内 subtask segments，也没有给 per-subtask success/failure。</p>
+    <p><strong>真实样例</strong>：官方网站的随机轨迹浏览器会展示真实轨迹对应的自然语言标注；页面上公开展示的语言指令例子包括：</p>
+    <pre>put the carrot on the plate
+flip the pot upright
+put the mushroom in the pot
+move the cloth to the left</pre>
+    <p>官方说明这些 instruction 是 trajectory-level 的 natural language annotation，而不是 episode 内多个 subtask。</p>
+    <p><strong>适配 MEM 结论</strong>：低层很好；高层如果要用，只能自己切 subtask 并补 success/failure。</p>
+    <p><strong>来源</strong>：<a href="https://bridgedata-v2.github.io/">BridgeData V2 项目页</a></p>
+
+    <h3>5. Ego-Exo4D Keystep</h3>
+    <p><strong>定位</strong>：第一视角/第三视角技能视频数据里的关键步骤标注。它不是机器人动作数据，但很像“高层子任务序列”。</p>
+    <p><strong>JSON 关键字段</strong>：</p>
+    <pre>{
+  annotations: {
+    take_uid,
+    scenario,
+    segments: [
+      {
+        start_time,
+        end_time,
+        step_id,
+        step_unique_id,
+        step_name,
+        step_description,
+        is_essential
+      }
+    ]
+  },
+  taxonomy,
+  vocabulary
+}</pre>
+    <p><strong>优点</strong>：</p>
+    <ul>
+      <li>天然有 segment 边界</li>
+      <li>天然有 step 名称和 step 描述</li>
+      <li>还有 taxonomy，可做层级步骤建模</li>
+    </ul>
+    <p><strong>缺点</strong>：</p>
+    <ul>
+      <li>没有机器人 action</li>
+      <li><code>is_essential</code> 不是 success/failure</li>
+      <li>更适合高层语义，不适合低层控制</li>
+    </ul>
+    <p><strong>真实样例</strong>：官方直接贴了 sample JSON，真实例子来自 Covid-19 Rapid Antigen Test 场景：</p>
+    <pre>{
+  "take_uid": "77cd56fc-6b68-4c7f-814b-81545484dd2d",
+  "take_name": "georgiatech_covid_07_6",
+  "scenario": "Covid-19 Rapid Antigen Test",
+  "segments": [
+    {
+      "start_time": 0.85598,
+      "end_time": 33.20377,
+      "step_id": 31,
+      "step_name": "Unbox package",
+      "step_description": "Unbox covid19 test package",
+      "is_essential": true
+    }
+  ]
+}</pre>
+    <p><strong>适配 MEM 结论</strong>：如果你要做 high-level memory summary pipeline 原型，它非常好；但别把它当真实机器人高层标注的等价替代。</p>
+    <p><strong>来源</strong>：<a href="https://docs.ego-exo4d-data.org/annotations/keystep/">Ego-Exo4D Keystep</a></p>
+
+    <h3>6. Ego4D Moments / Narrations</h3>
+    <p><strong>定位</strong>：大规模第一视角长视频及其时间段事件标注、narration 和 summary。非常适合“长时语义压缩”研究。</p>
+    <p><strong>Schema 关键字段</strong>：</p>
+    <pre>{
+  moments_<set>.json: {
+    videos[].clips[].annotations[].labels[]: {
+      start_time, end_time, label, primary
+    }
+  },
+  narrations.json: {
+    narration_pass_1/2: {
+      narrations[]: { timestamp_sec, narration_text },
+      summaries[]: { start_sec, end_sec, summary_text }
+    }
+  }
+}</pre>
+    <p><strong>优点</strong>：</p>
+    <ul>
+      <li>有时间段 labels</li>
+      <li>有 narration 和 summary_text</li>
+      <li>天然适合训练“历史压缩成文本”</li>
+    </ul>
+    <p><strong>缺点</strong>：</p>
+    <ul>
+      <li>不是机器人</li>
+      <li>没有任务式 success/failure</li>
+      <li>只能作为高层辅助，不适合直接做 MEM 全流程监督</li>
+    </ul>
+    <p><strong>真实样例</strong>：官方 schema 中的字段例子包括：</p>
+    <pre>{
+  "labels": [{
+    "start_time": 12.3,
+    "end_time": 18.7,
+    "label": "open refrigerator",
+    "primary": true
+  }],
+  "narrations": [{
+    "timestamp_sec": 15.2,
+    "narration_text": "I open the fridge"
+  }],
+  "summaries": [{
+    "start_sec": 0.0,
+    "end_sec": 60.0,
+    "summary_text": "preparing ingredients in the kitchen"
+  }]
+}</pre>
+    <p><strong>来源</strong>：<a href="https://ego4d-data.org/docs/data/annotations-schemas/">Ego4D Annotation Schemas</a></p>
+
+    <h3>7. EPIC-KITCHENS</h3>
+    <p><strong>定位</strong>：第一视角厨房视频数据。官方强调有大量 <strong>action segments</strong> 和 narrations。</p>
+    <p><strong>官方概况</strong>：</p>
+    <ul>
+      <li>100 hours</li>
+      <li>20M frames</li>
+      <li>90K action segments</li>
+      <li>20K unique narrations</li>
+      <li>97 verbs / 300 nouns</li>
+    </ul>
+    <p><strong>监督形式</strong>：</p>
+    <ul>
+      <li>trimmed action segments</li>
+      <li>(verb, noun) labels</li>
+      <li>caption / narration 对应 action segments</li>
+    </ul>
+    <p><strong>缺点</strong>：</p>
+    <ul>
+      <li>没有显式 success/failure</li>
+      <li>action segment 更像动作识别片段，不一定等于任务子目标</li>
+      <li>不适合直接当 MEM 的机器人高层监督</li>
+    </ul>
+    <p><strong>真实样例</strong>：官方注释仓库直接给了字段和示例值，例如 action annotation CSV 里有：</p>
+    <pre>narration_id: P01_01_0
+start_timestamp: 00:00:00.14
+stop_timestamp: 00:00:03.37
+narration: open door
+verb: open
+noun: door</pre>
+    <p>另外还有类似：</p>
+    <pre>narration: put lunch box
+narration: turn on tap
+narration: take plate</pre>
+    <p><strong>来源</strong>：<a href="https://epic-kitchens.github.io/2024">EPIC-KITCHENS 2024</a>、<a href="https://github.com/epic-kitchens/epic-kitchens-100-annotations">EPIC-KITCHENS-100 annotations</a></p>
+
+    <h2>对 open-pi-mem 的直接建议</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>高层脚本先接谁</h3>
+        <p><strong>先接 Isaac Lab SkillGen/Mimic 风格数据</strong>。原因：你需要的是 <code>[历史子任务 + 成败]</code>，而不是只有一条 instruction。这里的字段最接近你真正需要的高层 supervision。</p>
+      </div>
+      <div class="card">
+        <h3>低层脚本先接谁</h3>
+        <p><strong>先接 DROID</strong>。原因：它的 RLDS schema 明确、图像和动作字段齐全，还有 <code>droid_100</code> 调试版本，最适合先验证 low-level data adapter。</p>
+      </div>
+      <div class="card">
+        <h3>如果你暂时拿不到 Isaac Lab 数据</h3>
+        <p>可先用 <strong>Ego-Exo4D Keystep</strong> 做高层 history/summary 原型，但 success/failure 需要你自己补，最多当弱监督。</p>
+      </div>
+      <div class="card">
+        <h3>不要误判的地方</h3>
+        <p><strong>DROID/Bridge 的 language instruction 不等于 subtask 标注。</strong> 这两者经常只有 trajectory-level 或 step-level instruction，而不是带边界和成败的高层历史。</p>
+      </div>
+    </div>
+
+    <h2>证据出处</h2>
+    <ul>
+      <li><a href="https://isaac-sim.github.io/IsaacLab/release/2.2.0/source/overview/teleop_imitation.html">Isaac Lab Mimic</a>：subtask annotation、heuristics、term signals、boolean success criteria</li>
+      <li><a href="https://isaac-sim.github.io/IsaacLab/main/source/overview/imitation-learning/skillgen.html">Isaac Lab SkillGen</a>：pre-annotated dataset、manual subtask boundaries、start/term signal、episode success flag</li>
+      <li><a href="https://droid-dataset.github.io/droid/the-droid-dataset">DROID Docs</a>：RLDS schema、language_instruction、reward、action、observation</li>
+      <li><a href="https://droid-dataset.github.io/">DROID 项目页</a>：TFDS quickstart</li>
+      <li><a href="https://bridgedata-v2.github.io/">BridgeData V2</a>：trajectory-level natural language instruction、5Hz、38 timesteps</li>
+      <li><a href="https://docs.ego-exo4d-data.org/annotations/keystep/">Ego-Exo4D Keystep</a>：segments、step_name、step_description、is_essential</li>
+      <li><a href="https://ego4d-data.org/docs/data/annotations-schemas/">Ego4D Annotation Schemas</a>：moments labels、narrations、summaries</li>
+      <li><a href="https://epic-kitchens.github.io/2024">EPIC-KITCHENS 2024</a>：90K action segments、20K narrations</li>
+    </ul>
+
+    <div class="note">
+      这里有一部分结论属于“基于官方 schema 的工程推断”：例如 DROID 和 BridgeData V2 不适合作为现成高层 supervision 源，不是因为它们完全不能做，而是因为官方公开格式里没有直接给出 MEM 需要的子任务边界和子任务成败标签。
+    </div>
+  </div>
+</body>
+</html>

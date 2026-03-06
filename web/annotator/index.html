@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Open PI MEM Episode Annotator</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>Episode Annotator</h1>
+        <p>先打断点切出连续片段，再逐段填写 subtask 和 success/failure，并直接写出到仓库。</p>
+      </div>
+      <div class="topbar-actions">
+        <button id="load-sample-btn" class="secondary">加载示例</button>
+        <label class="file-button">
+          导入已有标注
+          <input id="import-file" type="file" accept=".json,.jsonl" />
+        </label>
+        <button id="export-current-btn">保存当前到仓库</button>
+        <button id="export-all-btn">保存全部到仓库</button>
+      </div>
+    </header>
+
+    <div class="export-banner card slim-card">
+      <strong>导出目标</strong>
+      <span><code>data/manual_annotations/episodes.annotated.jsonl</code> 和 <code>data/manual_annotations/episodes/*.json</code></span>
+    </div>
+
+    <main class="main-grid breakpoint-mode">
+      <section class="library-panel card">
+        <div class="panel-header">
+          <h2>视频库</h2>
+          <label class="file-button compact">
+            添加视频
+            <input id="video-input" type="file" accept="video/*" multiple />
+          </label>
+        </div>
+        <p class="muted">浏览器不会直接写本地视频文件，导出时会记录文件名或你手工填写的相对路径。</p>
+        <div id="episode-list" class="episode-list"></div>
+      </section>
+
+      <section class="viewer-panel card">
+        <div class="panel-header viewer-header">
+          <div>
+            <h2 id="active-title">未选择视频</h2>
+            <p id="active-meta" class="muted">先添加一个本地视频。</p>
+          </div>
+          <div class="time-pills">
+            <span class="pill">当前时间 <strong id="current-time">0.00s</strong></span>
+            <span class="pill">总时长 <strong id="duration-time">0.00s</strong></span>
+            <span class="pill">断点数 <strong id="breakpoint-count">0</strong></span>
+          </div>
+        </div>
+
+        <div class="video-frame">
+          <video id="video-player" controls preload="metadata"></video>
+        </div>
+
+        <div class="transport-grid">
+          <div class="transport-buttons">
+            <button data-seek="-5">-5s</button>
+            <button data-seek="-1">-1s</button>
+            <button data-seek="1">+1s</button>
+            <button data-seek="5">+5s</button>
+            <button id="add-breakpoint-btn">新增断点</button>
+            <button id="normalize-breakpoints-btn" class="secondary">排序断点</button>
+            <button id="clear-breakpoints-btn" class="ghost">清空断点</button>
+          </div>
+          <div class="transport-help muted">
+            工作流：先在时间轴上打完所有断点，再到右侧逐段标注。系统会自动生成连续片段：<code>[0,b1] [b1,b2] ... [bn,duration]</code>。
+          </div>
+        </div>
+
+        <div class="segment-draft card inset-card">
+          <div class="panel-header compact-header">
+            <h3>断点列表</h3>
+            <button id="rebuild-segments-btn" class="ghost">按断点重建片段</button>
+          </div>
+          <div id="breakpoints-list" class="breakpoints-list empty-state">还没有断点。播放视频后点击“新增断点”。</div>
+        </div>
+      </section>
+
+      <section class="annotation-panel card">
+        <div class="panel-header">
+          <h2>Episode 标注</h2>
+          <button id="save-episode-btn" class="secondary">保存到浏览器</button>
+        </div>
+
+        <div class="episode-form">
+          <label>
+            Episode ID
+            <input id="episode-id" type="text" placeholder="ep_001" />
+          </label>
+          <label>
+            Goal
+            <input id="episode-goal" type="text" placeholder="put the mug into the cabinet" />
+          </label>
+          <label>
+            FPS
+            <input id="episode-fps" type="number" min="1" step="1" value="10" />
+          </label>
+          <label>
+            Video Path
+            <input id="video-path" type="text" placeholder="videos/ep_001.mp4" />
+          </label>
+          <label class="full-width">
+            Episode Notes
+            <textarea id="episode-notes" rows="2" placeholder="可选"></textarea>
+          </label>
+        </div>
+
+        <div class="panel-header compact-header">
+          <h3>片段标注</h3>
+          <button id="autofill-text-btn" class="ghost">给空白片段填占位文本</button>
+        </div>
+        <div id="segments-list" class="segments-list empty-state">先打断点，系统才会生成片段。</div>
+      </section>
+    </main>
+  </div>
+
+  <template id="episode-item-template">
+    <button class="episode-item">
+      <span class="episode-name"></span>
+      <span class="episode-sub"></span>
+    </button>
+  </template>
+
+  <template id="breakpoint-item-template">
+    <div class="breakpoint-item">
+      <div>
+        <strong class="breakpoint-time"></strong>
+        <div class="breakpoint-meta muted"></div>
+      </div>
+      <div class="segment-actions">
+        <button data-action="jump" class="ghost small">跳转</button>
+        <button data-action="delete" class="danger small">删除</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="segment-item-template">
+    <div class="segment-item segment-editor">
+      <div class="segment-item-header">
+        <div>
+          <strong class="segment-title"></strong>
+          <div class="segment-meta"></div>
+        </div>
+        <div class="segment-actions">
+          <button data-action="jump" class="ghost small">跳转</button>
+        </div>
+      </div>
+      <div class="segment-editor-grid">
+        <label>
+          子任务文本
+          <input data-field="text" type="text" placeholder="例如：grasp mug handle" />
+        </label>
+        <label>
+          状态
+          <select data-field="status">
+            <option value="success">success</option>
+            <option value="failure">failure</option>
+            <option value="unknown">unknown</option>
+          </select>
+        </label>
+        <label>
+          Confidence
+          <input data-field="confidence" type="number" step="0.05" min="0" max="1" value="1" />
+        </label>
+        <label>
+          Notes
+          <input data-field="notes" type="text" placeholder="可选" />
+        </label>
+      </div>
+    </div>
+  </template>
+
+  <script src="./app.js"></script>
+</body>
+</html>

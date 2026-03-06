@@ -59,6 +59,39 @@ The paper leaves several implementation details unspecified: exact parameter sha
 
 That is the hook for "start from a VLM, then continue training MEM".
 
+## Episode Annotation App
+
+A lightweight local web app is included under `web/annotator/` for manually labeling episode videos into MEM-style high-level supervision.
+
+What it supports:
+
+- load one or more local video files in the browser
+- first place breakpoints only, then auto-build continuous segments
+- label each generated segment with `text`, `status`, `confidence`, and `notes`
+- save the current episode or all episodes directly into the repository
+- import existing JSON / JSONL annotations back into the UI
+
+Start it locally:
+
+```bash
+python scripts/run_annotation_app.py --port 8765
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8765
+```
+
+Export format is aligned with the high-level episode schema used by `scripts/generate_memory_data.py`.
+
+Notes:
+
+- workflow is now breakpoint-first: if breakpoints are `[b1, b2, ...]`, the app generates segments `[0,b1] [b1,b2] ... [bn,duration]`
+- local video files stay in the browser; the app writes annotations into `data/manual_annotations/` and records `video_path` as a filename or manually edited relative path
+- browser localStorage keeps annotation text, but local file handles are not persisted across refreshes, so reload the video if needed
+- the app is intended for high-quality human labeling, not collaborative multi-user annotation
+
 ## Stage A Local Smoke Test
 
 A minimal local test set is checked into `examples/`:
