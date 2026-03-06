@@ -59,6 +59,31 @@ The paper leaves several implementation details unspecified: exact parameter sha
 
 That is the hook for "start from a VLM, then continue training MEM".
 
+## Stage A Local Smoke Test
+
+A minimal local test set is checked into `examples/`:
+
+- `examples/episodes.sample.jsonl`: 4 high-level episodes
+- `examples/low_level_rollouts.sample.jsonl`: 16 low-level windows
+- `examples/frames/`: 8 local PNG frames
+
+Generate memory supervision locally without calling an external LLM:
+
+```bash
+PYTHONPATH=src python scripts/generate_memory_data.py   --input examples/episodes.sample.jsonl   --output examples/memory_supervision.sample.jsonl   --provider rule_based
+```
+
+Prepare configs for the sample files by overriding the dataset paths or editing the YAMLs.
+
+These samples are for pipeline validation only:
+
+- schema validation
+- segmentation / success-failure annotation
+- image loading
+- low-level batch collation
+
+They are not intended as meaningful training data.
+
 ## High-Level Memory Supervision Pipeline
 
 Open datasets rarely provide PI-style long-horizon language memory labels. The pipeline here is:
