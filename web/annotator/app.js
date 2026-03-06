@@ -13,6 +13,10 @@ const els = {
   episodeList: document.getElementById("episode-list"),
   segmentsList: document.getElementById("segments-list"),
   breakpointsList: document.getElementById("breakpoints-list"),
+  timeline: document.getElementById("timeline"),
+  timelineSegments: document.getElementById("timeline-segments"),
+  timelineBreakpoints: document.getElementById("timeline-breakpoints"),
+  timelineCursor: document.getElementById("timeline-cursor"),
   activeTitle: document.getElementById("active-title"),
   activeMeta: document.getElementById("active-meta"),
   currentTime: document.getElementById("current-time"),
@@ -58,6 +62,8 @@ function bindEvents() {
   els.exportCurrentBtn.addEventListener("click", () => saveToRepository("current"));
   els.exportAllBtn.addEventListener("click", () => saveToRepository("all"));
   els.loadSampleBtn.addEventListener("click", loadSampleEpisodes);
+  els.timeline.addEventListener("click", handleTimelineClick);
+  els.timeline.addEventListener("keydown", handleTimelineKeydown);
   [els.episodeId, els.episodeGoal, els.episodeFps, els.videoPath, els.episodeNotes].forEach((input) => {
     input.addEventListener("change", saveEpisodeFields);
     input.addEventListener("blur", saveEpisodeFields);
@@ -113,6 +119,7 @@ function render() {
   renderEpisodeList();
   renderActiveEpisode();
   renderBreakpoints();
+  renderTimeline();
   renderSegments();
 }
 
@@ -171,6 +178,7 @@ function clearEpisodeInputs() {
   els.currentTime.textContent = "0.00s";
   els.durationTime.textContent = "0.00s";
   els.breakpointCount.textContent = "0";
+  renderTimeline();
 }
 
 function renderBreakpoints() {
@@ -196,6 +204,79 @@ function renderBreakpoints() {
     });
     els.breakpointsList.appendChild(node);
   });
+}
+
+function renderTimeline() {
+  const episode = getActiveEpisode();
+  const duration = Number(episode?.durationSec || 0);
+  els.timelineSegments.innerHTML = "";
+  els.timelineBreakpoints.innerHTML = "";
+  if (!episode || duration <= 0) {
+    els.timelineCursor.style.left = "0%";
+    return;
+  }
+  episode.segments.forEach((segment, index) => {
+    const item = document.createElement("div");
+    item.className = `timeline-segment timeline-segment-${segment.status || "unknown"}`;
+    const left = (segment.startSec / duration) * 100;
+    const width = Math.max(((segment.endSec - segment.startSec) / duration) * 100, 0.8);
+    item.style.left = `${left}%`;
+    item.style.width = `${width}%`;
+    item.title = `片段 ${index + 1}: ${segment.text || "未命名"}`;
+    item.addEventListener("click", (event) => {
+      event.stopPropagation();
+      playInterval(segment.startSec, segment.endSec);
+    });
+    const label = document.createElement("div");
+    label.className = "timeline-segment-label";
+    label.textContent = segment.text || `片段 ${index + 1}`;
+    item.appendChild(label);
+    els.timelineSegments.appendChild(item);
+  });
+  episode.breakpoints.forEach((point, index) => {
+    const marker = document.createElement("div");
+    marker.className = "timeline-breakpoint";
+    marker.style.left = `${(point / duration) * 100}%`;
+    marker.title = `断点 ${index + 1}: ${formatTime(point)}`;
+    marker.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const next = episode.breakpoints[index + 1] ?? duration;
+      playInterval(point, next);
+    });
+    els.timelineBreakpoints.appendChild(marker);
+  });
+  updateTimelineCursor();
+}
+
+function updateTimelineCursor() {
+  const episode = getActiveEpisode();
+  const duration = Number(episode?.durationSec || 0);
+  const current = Number(els.videoPlayer.currentTime || 0);
+  const left = duration > 0 ? (current / duration) * 100 : 0;
+  els.timelineCursor.style.left = `${clamp(left, 0, 100)}%`;
+}
+
+function handleTimelineClick(event) {
+  const episode = getActiveEpisode();
+  if (!episode || !episode.durationSec) return;
+  const rect = els.timeline.getBoundingClientRect();
+  const ratio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+  const targetSec = roundTime(ratio * episode.durationSec);
+  if (event.shiftKey) {
+    addBreakpointAtTime(targetSec);
+    return;
+  }
+  state.playbackSegmentEnd = null;
+  els.videoPlayer.currentTime = targetSec;
+  updateTimeDisplay();
+  updateTimelineCursor();
+}
+
+function handleTimelineKeydown(event) {
+  if (event.key === "Enter" || event.key === " ") {
+    addBreakpointAtCurrentTime();
+    event.preventDefault();
+  }
 }
 
 function renderSegments() {
@@ -242,6 +323,7 @@ function updateSegmentField(segmentId, field, value) {
 
 function handleVideoTimeUpdate() {
   updateTimeDisplay();
+  updateTimelineCursor();
   if (state.playbackSegmentEnd != null && (els.videoPlayer.currentTime || 0) >= state.playbackSegmentEnd - 0.01) {
     els.videoPlayer.pause();
     els.videoPlayer.currentTime = state.playbackSegmentEnd;
@@ -266,24 +348,29 @@ function seekBy(delta) {
   if (!Number.isFinite(els.videoPlayer.duration)) return;
   state.playbackSegmentEnd = null;
   els.videoPlayer.currentTime = clamp((els.videoPlayer.currentTime || 0) + delta, 0, els.videoPlayer.duration);
+  updateTimelineCursor();
 }
 
 function playInterval(startSec, endSec) {
   state.playbackSegmentEnd = endSec > startSec ? endSec : null;
   els.videoPlayer.currentTime = startSec;
   updateTimeDisplay();
+  updateTimelineCursor();
   els.videoPlayer.play().catch(() => {});
 }
 
 function addBreakpointAtCurrentTime() {
+  addBreakpointAtTime(roundTime(els.videoPlayer.currentTime || 0));
+}
+
+function addBreakpointAtTime(current) {
   const episode = getActiveEpisode();
   if (!episode) {
     alert("先选择一个视频。");
     return;
   }
-  const current = roundTime(els.videoPlayer.currentTime || 0);
   if (current <= 0 || (episode.durationSec && current >= episode.durationSec)) {
-    alert("断点应在视频内部，不要打在 0 或视频末尾。")
+    alert("断点应在视频内部，不要打在 0 或视频末尾。");
     return;
   }
   if (!episode.breakpoints.some((point) => nearlyEqual(point, current))) {
@@ -526,10 +613,12 @@ function loadEpisodeIntoPlayer() {
   if (!episode || !episode.videoUrl) {
     els.videoPlayer.removeAttribute("src");
     els.videoPlayer.load();
+    updateTimelineCursor();
     return;
   }
   els.videoPlayer.src = episode.videoUrl;
   els.videoPlayer.load();
+  updateTimelineCursor();
 }
 
 function persist() {

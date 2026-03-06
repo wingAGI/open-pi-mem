@@ -61,16 +61,30 @@
 
         <div class="transport-grid">
           <div class="transport-buttons">
-            <button data-seek="-5">-5s</button>
-            <button data-seek="-1">-1s</button>
-            <button data-seek="1">+1s</button>
-            <button data-seek="5">+5s</button>
             <button id="add-breakpoint-btn">新增断点</button>
             <button id="normalize-breakpoints-btn" class="secondary">排序断点</button>
             <button id="clear-breakpoints-btn" class="ghost">清空断点</button>
           </div>
           <div class="transport-help muted">
             工作流：先在时间轴上打完所有断点，再到右侧逐段标注。系统会自动生成连续片段：<code>[0,b1] [b1,b2] ... [bn,duration]</code>。
+          </div>
+        </div>
+
+        <div class="timeline-card card inset-card">
+          <div class="panel-header compact-header timeline-header">
+            <h3>时间轴</h3>
+            <div class="timeline-actions muted">点击时间轴定位；`Shift + 点击` 可直接新增断点</div>
+          </div>
+          <div id="timeline" class="timeline" role="slider" aria-label="episode timeline" tabindex="0">
+            <div id="timeline-segments" class="timeline-segments"></div>
+            <div id="timeline-breakpoints" class="timeline-breakpoints"></div>
+            <div id="timeline-cursor" class="timeline-cursor"></div>
+          </div>
+          <div class="timeline-legend muted">
+            <span><i class="legend-chip legend-success"></i> success</span>
+            <span><i class="legend-chip legend-failure"></i> failure</span>
+            <span><i class="legend-chip legend-unknown"></i> unknown</span>
+            <span><i class="legend-chip legend-point"></i> breakpoint</span>
           </div>
         </div>
 
