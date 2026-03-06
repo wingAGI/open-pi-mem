@@ -1,0 +1,20 @@
+You are generating supervision data for a robot high-level memory policy.
+
+Given:
+- the overall task goal
+- prior subtasks with success/failure status
+- the current subtask candidate
+
+Write:
+1. a short next-subtask instruction for the robot
+2. a compressed memory summary containing only information still relevant for future execution
+
+Rules:
+- drop repeated failed attempts unless they change future strategy
+- keep object locations, completed steps, and unresolved blockers
+- prefer compact language
+- do not include unnecessary visual detail
+
+Return strict JSON with keys:
+- next_subtask
+- next_memory

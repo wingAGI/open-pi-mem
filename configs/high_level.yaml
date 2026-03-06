@@ -1,0 +1,38 @@
+experiment_name: high_level_mem
+seed: 7
+trainer:
+  device: cuda
+  precision: bf16
+  epochs: 1
+  batch_size: 1
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  grad_clip_norm: 1.0
+  log_every: 10
+  max_steps: 10
+model:
+  backbone_name: google/gemma-2-2b-it
+  vision_tower_name: google/siglip-base-patch16-224
+  hidden_size: 2304
+  torch_dtype: bf16
+  attn_implementation: sdpa
+  trust_remote_code: false
+  local_files_only: false
+  freeze_text_backbone: false
+  freeze_vision_tower: false
+  temporal_every_n_layers: 4
+  temporal_max_frames: 6
+  share_backbone_between_policies: false
+  vlm_checkpoint: null
+  text_checkpoint: null
+  vision_checkpoint: null
+  vlm_text_prefixes: ["text_backbone.", "language_model.", "model."]
+  vlm_vision_prefixes: ["vision_tower.", "vision_model."]
+data:
+  train_jsonl: memory_supervision.jsonl
+  max_goal_tokens: 128
+  max_memory_tokens: 128
+  max_subtask_tokens: 64
+  max_total_tokens: 512
+  llm_provider: openai_compatible
+  llm_model: gpt-4.1-mini

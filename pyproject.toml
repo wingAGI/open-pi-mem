@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "open-pi-mem"
+version = "0.2.0"
+description = "Open reproduction scaffold for PI MEM"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.2",
+  "transformers>=4.44",
+  "accelerate>=1.0",
+  "einops>=0.8",
+  "pydantic>=2.8",
+  "pyyaml>=6.0",
+  "openai>=1.54.0",
+  "Pillow>=10.4.0",
+  "safetensors>=0.4.5",
+]
+
+[project.scripts]
+open-pi-mem = "open_pi_mem.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

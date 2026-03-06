@@ -1,0 +1,23 @@
+open_datasets:
+  high_level_long_video:
+    - ego4d
+    - epic_kitchens
+  low_level_robot:
+    - droid
+    - bridge_v2
+bridging_plan:
+  high_level_supervision:
+    raw_episode_jsonl: episodes.jsonl
+    segmentation_mode: auto
+    success_mode: auto
+    llm_provider: openai_compatible
+    llm_model: gpt-4.1-mini
+    prompt_template: prompts/memory_summary_prompt.txt
+  low_level_minimal_experiment:
+    dataset: droid
+    source_format: rlds_tfds
+    local_data_dir: /path/to/tfds
+    output_jsonl: low_level_rollouts.jsonl
+    max_episodes: 8
+    frame_horizon: 6
+    action_horizon: 16

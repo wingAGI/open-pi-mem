@@ -1,0 +1,45 @@
+experiment_name: low_level_mem
+seed: 7
+trainer:
+  device: cuda
+  precision: bf16
+  epochs: 1
+  batch_size: 1
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  grad_clip_norm: 1.0
+  log_every: 10
+  max_steps: 10
+loss:
+  action_mse_weight: 1.0
+  fast_token_weight: 1.0
+  flow_matching_weight: 1.0
+model:
+  backbone_name: google/gemma-2-2b-it
+  vision_tower_name: google/siglip-base-patch16-224
+  hidden_size: 2304
+  torch_dtype: bf16
+  attn_implementation: sdpa
+  trust_remote_code: false
+  local_files_only: false
+  freeze_text_backbone: false
+  freeze_vision_tower: false
+  vlm_checkpoint: null
+  text_checkpoint: null
+  vision_checkpoint: null
+  vlm_text_prefixes: ["text_backbone.", "language_model.", "model."]
+  vlm_vision_prefixes: ["vision_tower.", "vision_model."]
+  action_dim: 14
+  action_chunk_horizon: 16
+  temporal_every_n_layers: 4
+  temporal_layers: 2
+  temporal_max_frames: 6
+  use_fast_head: true
+  use_flow_matching_head: true
+  stop_action_expert_grad_to_backbone: true
+  fast_vocab_size: 1024
+data:
+  train_jsonl: low_level_rollouts.jsonl
+  max_prompt_tokens: 256
+  max_frames: 6
+  frame_stride: 1
