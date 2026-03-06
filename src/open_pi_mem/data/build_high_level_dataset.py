@@ -10,7 +10,7 @@ from open_pi_mem.data.memory_generation import (
     load_prompt,
 )
 from open_pi_mem.data.schemas import EpisodeRecord
-from open_pi_mem.utils.io import read_jsonl, write_jsonl
+from open_pi_mem.utils.io import read_records_from_path, write_jsonl
 
 
 def build_memory_supervision(
@@ -22,7 +22,7 @@ def build_memory_supervision(
     segmentation_mode: str = "auto",
     success_mode: str = "auto",
 ) -> None:
-    rows = read_jsonl(input_path)
+    rows = read_records_from_path(input_path)
     prompt = load_prompt(prompt_path)
     llm_client = build_llm_client(llm_config or LLMProviderConfig())
     builder = MemorySupervisionBuilder(prompt_template=prompt, llm_client=llm_client)

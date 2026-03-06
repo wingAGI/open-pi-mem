@@ -8,11 +8,24 @@ from open_pi_mem.data.memory_generation import LLMProviderConfig
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True)
-    parser.add_argument("--output", required=True)
-    parser.add_argument("--prompt", default=str(Path(__file__).resolve().parents[1] / "prompts" / "memory_summary_prompt.txt"))
-    parser.add_argument("--provider", default="rule_based")
+    repo_root = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser(
+        description="Generate high-level memory supervision from manual annotation JSON/JSONL files.",
+    )
+    parser.add_argument(
+        "--input",
+        default=str(repo_root / "data" / "manual_annotations" / "episodes"),
+        help="Input path: a single .json, a .jsonl, or a directory of episode .json files.",
+    )
+    parser.add_argument(
+        "--output",
+        default=str(repo_root / "data" / "manual_annotations" / "memory_supervision.manual.jsonl"),
+    )
+    parser.add_argument(
+        "--prompt",
+        default=str(repo_root / "prompts" / "memory_summary_prompt.txt"),
+    )
+    parser.add_argument("--provider", default="openai_compatible")
     parser.add_argument("--model", default="gpt-4.1-mini")
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--api-key-env", default="OPENAI_API_KEY")
@@ -27,10 +40,11 @@ def main() -> None:
     reasoning_split = None
     if args.reasoning_split != "auto":
         reasoning_split = args.reasoning_split == "true"
+
     build_memory_supervision(
-        args.input,
-        args.output,
-        args.prompt,
+        input_path=args.input,
+        output_path=args.output,
+        prompt_path=args.prompt,
         llm_config=LLMProviderConfig(
             provider=args.provider,
             model_name=args.model,
@@ -45,7 +59,7 @@ def main() -> None:
         segmentation_mode=args.segmentation_mode,
         success_mode=args.success_mode,
     )
-    print(f"Wrote memory supervision to {args.output}")
+    print(f"Wrote manual high-level supervision to {args.output}")
 
 
 if __name__ == "__main__":

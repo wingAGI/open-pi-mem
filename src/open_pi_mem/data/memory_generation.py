@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -17,6 +18,10 @@ class LLMProviderConfig:
     api_key_env: str = "OPENAI_API_KEY"
     temperature: float = 0.1
     max_tokens: int = 256
+    max_retries: int = 3
+    retry_backoff_sec: float = 1.5
+    api_mode: str = "auto"
+    reasoning_split: bool | None = None
 
 
 class LLMClient:
@@ -35,16 +40,51 @@ class OpenAICompatibleClient(LLMClient):
         self.model_name = config.model_name
         self.temperature = config.temperature
         self.max_tokens = config.max_tokens
+        self.max_retries = max(config.max_retries, 1)
+        self.retry_backoff_sec = max(config.retry_backoff_sec, 0.0)
+        self.api_mode = _resolve_api_mode(config)
+        self.reasoning_split = _resolve_reasoning_split(config)
 
     def generate_json(self, prompt: str) -> dict[str, Any]:
+        last_error: Exception | None = None
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                text = self._generate_text(prompt)
+                return _parse_json_payload(text)
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+                if attempt == self.max_retries:
+                    break
+                time.sleep(self.retry_backoff_sec * attempt)
+        assert last_error is not None
+        raise RuntimeError(f"LLM generation failed after {self.max_retries} attempts") from last_error
+
+    def _generate_text(self, prompt: str) -> str:
+        if self.api_mode == "chat":
+            request_kwargs: dict[str, Any] = {}
+            if self.reasoning_split is not None:
+                request_kwargs["extra_body"] = {"reasoning_split": self.reasoning_split}
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                **request_kwargs,
+            )
+            return response.choices[0].message.content or ""
+
         response = self.client.responses.create(
             model=self.model_name,
             input=prompt,
             temperature=self.temperature,
             max_output_tokens=self.max_tokens,
         )
-        text = response.output_text
-        return _parse_json_payload(text)
+        return response.output_text
 
 
 class RuleBasedFallbackClient(LLMClient):
@@ -111,6 +151,28 @@ def build_llm_client(config: LLMProviderConfig) -> LLMClient:
     if config.provider in {"openai", "openai_compatible", "vllm"}:
         return OpenAICompatibleClient(config)
     return RuleBasedFallbackClient()
+
+
+def _resolve_api_mode(config: LLMProviderConfig) -> str:
+    if config.api_mode in {"chat", "responses"}:
+        return config.api_mode
+    provider = (config.provider or "").lower()
+    base_url = (config.base_url or "").lower()
+    model_name = (config.model_name or "").lower()
+    if "minimax" in provider or "minimax" in base_url or model_name.startswith("minimax"):
+        return "chat"
+    return "responses"
+
+
+def _resolve_reasoning_split(config: LLMProviderConfig) -> bool | None:
+    if config.reasoning_split is not None:
+        return config.reasoning_split
+    provider = (config.provider or "").lower()
+    base_url = (config.base_url or "").lower()
+    model_name = (config.model_name or "").lower()
+    if "minimax" in provider or "minimax" in base_url or model_name.startswith("minimax"):
+        return True
+    return None
 
 
 def ensure_episode_annotations(
@@ -206,6 +268,12 @@ def _normalize_instruction_stream(metadata: dict[str, Any]) -> list[str]:
 
 def _parse_json_payload(text: str) -> dict[str, Any]:
     text = text.strip()
+    if "<think>" in text and "</think>" in text:
+        think_start = text.find("<think>")
+        think_end = text.find("</think>")
+        if think_start != -1 and think_end != -1 and think_end > think_start:
+            text = text[:think_start] + text[think_end + len("</think>") :]
+            text = text.strip()
     if text.startswith("```"):
         text = text.split("\n", 1)[1]
         if text.endswith("```"):

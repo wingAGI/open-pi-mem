@@ -92,6 +92,19 @@ Notes:
 - browser localStorage keeps annotation text, but local file handles are not persisted across refreshes, so reload the video if needed
 - the app is intended for high-quality human labeling, not collaborative multi-user annotation
 
+Generate high-level training data directly from manual annotations:
+
+```bash
+export OPENAI_API_KEY=...
+PYTHONPATH=src python scripts/generate_manual_high_level_data.py \
+  --input data/manual_annotations/episodes \
+  --output data/manual_annotations/memory_supervision.manual.jsonl \
+  --provider openai_compatible \
+  --model gpt-4.1-mini
+```
+
+`--input` also accepts a single episode `.json` file or `episodes.annotated.jsonl`.
+
 ## Stage A Local Smoke Test
 
 A minimal local test set is checked into `examples/`:
