@@ -219,6 +219,25 @@ python scripts/train_high_level.py \
   --config configs/high_level.yaml
 ```
 
+To train the high-level policy with a single-image VLM backbone instead of the text-only scaffold:
+
+```bash
+python scripts/train_high_level.py \
+  --config configs/high_level_vlm.yaml
+```
+
+Run minimal high-level inference on one image:
+
+```bash
+python scripts/run_high_level_inference.py \
+  --config configs/high_level_vlm.yaml \
+  --image /path/to/current_frame.jpg \
+  --goal "put the milk on the counter and close the fridge" \
+  --prev-memory "opened the fridge; found the milk carton" \
+  --history-item "reach for fridge handle | status=success" \
+  --history-item "pull fridge door outward | status=success"
+```
+
 ### Low-level
 
 ```bash

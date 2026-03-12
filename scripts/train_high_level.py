@@ -26,8 +26,9 @@ def main() -> None:
     )
     dataset = MemorySupervisionDataset(cfg["data"]["train_jsonl"])
     collator = HighLevelCollator(
-        tokenizer=model.text_backbone.tokenizer,
+        tokenizer=None if model.is_multimodal else model.text_backbone.tokenizer,
         max_length=cfg["data"].get("max_total_tokens", 512),
+        processor=model.processor,
     )
     loader = DataLoader(
         dataset,
@@ -39,8 +40,7 @@ def main() -> None:
     for step, batch in enumerate(loader, start=1):
         metrics = trainer.train_step(
             HighLevelBatch(
-                input_ids=batch["input_ids"],
-                attention_mask=batch["attention_mask"],
+                model_inputs={key: value for key, value in batch.items() if key != "labels"},
                 labels=batch["labels"],
             )
         )

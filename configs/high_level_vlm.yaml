@@ -1,0 +1,27 @@
+experiment_name: high_level_mem_vlm
+seed: 7
+trainer:
+  device: cuda
+  precision: bf16
+  epochs: 1
+  batch_size: 1
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  grad_clip_norm: 1.0
+  log_every: 10
+  max_steps: 10
+model:
+  multimodal_backbone_name: Qwen/Qwen2.5-VL-3B-Instruct
+  torch_dtype: bf16
+  attn_implementation: sdpa
+  trust_remote_code: true
+  local_files_only: false
+  freeze_text_backbone: false
+data:
+  train_jsonl: memory_supervision.jsonl
+  max_goal_tokens: 128
+  max_memory_tokens: 128
+  max_subtask_tokens: 64
+  max_total_tokens: 1024
+  llm_provider: openai_compatible
+  llm_model: gpt-4.1-mini

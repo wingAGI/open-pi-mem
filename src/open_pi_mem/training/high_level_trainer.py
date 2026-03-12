@@ -10,8 +10,7 @@ from open_pi_mem.models.high_level_policy import HighLevelPolicy
 
 @dataclass
 class HighLevelBatch:
-    input_ids: torch.Tensor
-    attention_mask: torch.Tensor
+    model_inputs: dict[str, torch.Tensor]
     labels: torch.Tensor
 
 
@@ -23,9 +22,8 @@ class HighLevelTrainer:
     def train_step(self, batch: HighLevelBatch) -> dict[str, float]:
         self.model.train()
         outputs = self.model(
-            input_ids=batch.input_ids,
-            attention_mask=batch.attention_mask,
             labels=batch.labels,
+            **batch.model_inputs,
         )
         loss = outputs["loss"]
         if loss is None:

@@ -1,0 +1,120 @@
+from __future__ import annotations
+
+import argparse
+import re
+from pathlib import Path
+
+import torch
+from PIL import Image
+
+from open_pi_mem.models.high_level_policy import HighLevelPolicy
+from open_pi_mem.utils.config import load_yaml
+
+
+def build_prompt(goal: str, prev_memory: str, history_items: list[str]) -> str:
+    history_text = "\n".join(history_items) if history_items else "- None | status=unknown"
+    return (
+        "You are the high-level planner for a robot policy.\n"
+        f"Goal: {goal}\n"
+        f"Previous memory: {prev_memory or 'None'}\n"
+        f"History:\n{history_text}\n"
+        "Predict the next subtask and memory update.\n"
+    )
+
+
+def parse_prediction(text: str) -> tuple[str, str]:
+    subtask_match = re.search(r"<subtask>(.*?)</subtask>", text, flags=re.DOTALL)
+    memory_match = re.search(r"<memory>(.*?)</memory>", text, flags=re.DOTALL)
+    subtask = subtask_match.group(1).strip() if subtask_match else ""
+    memory = memory_match.group(1).strip() if memory_match else ""
+    return subtask, memory
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run high-level MEM inference on one image and text state.")
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--image", required=True)
+    parser.add_argument("--goal", required=True)
+    parser.add_argument("--prev-memory", default="")
+    parser.add_argument(
+        "--history-item",
+        action="append",
+        default=[],
+        help='Repeatable history item, e.g. --history-item "reach handle | status=success"',
+    )
+    parser.add_argument("--max-new-tokens", type=int, default=96)
+    args = parser.parse_args()
+
+    cfg = load_yaml(args.config)
+    device_name = cfg.get("trainer", {}).get("device", "cpu")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        device_name = "cpu"
+    device = torch.device(device_name)
+
+    model = HighLevelPolicy(cfg["model"])
+    model.to(device)
+    model.eval()
+
+    prompt = build_prompt(args.goal, args.prev_memory, args.history_item)
+    image = Image.open(args.image).convert("RGB")
+
+    if model.is_multimodal:
+        prompt_text = model.processor.apply_chat_template(
+            [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image"},
+                        {"type": "text", "text": prompt},
+                    ],
+                }
+            ],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        batch = model.processor(
+            text=[prompt_text],
+            images=[image],
+            return_tensors="pt",
+        )
+    else:
+        batch = model.text_backbone.tokenizer(
+            [prompt],
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=cfg["data"].get("max_total_tokens", 512),
+        )
+
+    batch = {key: value.to(device) for key, value in batch.items()}
+    with torch.no_grad():
+        generated = model.generate(
+            **batch,
+            max_new_tokens=args.max_new_tokens,
+            do_sample=False,
+        )
+
+    generated_tokens = generated[:, batch["input_ids"].shape[1] :]
+    if model.is_multimodal:
+        text = model.processor.batch_decode(
+            generated_tokens,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False,
+        )[0]
+    else:
+        text = model.text_backbone.tokenizer.batch_decode(
+            generated_tokens,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False,
+        )[0]
+
+    next_subtask, next_memory = parse_prediction(text)
+    print("Raw output:")
+    print(text.strip())
+    print("\nParsed prediction:")
+    print(f"next_subtask: {next_subtask or '[missing]'}")
+    print(f"next_memory: {next_memory or '[missing]'}")
+
+
+if __name__ == "__main__":
+    main()

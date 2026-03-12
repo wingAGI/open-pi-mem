@@ -17,10 +17,15 @@ IGNORE_INDEX = -100
 
 @dataclass
 class HighLevelCollator:
-    tokenizer: Any
+    tokenizer: Any | None
     max_length: int
+    processor: Any | None = None
 
-    def __call__(self, rows: list[dict[str, str]]) -> dict[str, torch.Tensor]:
+    def __call__(self, rows: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
+        if self.processor is not None:
+            return self._collate_multimodal(rows)
+        if self.tokenizer is None:
+            raise ValueError("HighLevelCollator requires either tokenizer or processor.")
         prompts = [row["prompt"] for row in rows]
         full_texts = [f"{row['prompt']}{row['target']}" for row in rows]
         prompt_tokens = self.tokenizer(
@@ -44,15 +49,70 @@ class HighLevelCollator:
         encoded["labels"] = labels
         return encoded
 
+    def _collate_multimodal(self, rows: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
+        if self.processor is None:
+            raise ValueError("Processor is required for multimodal collation.")
+        images = [_load_optional_image(row.get("image_path")) for row in rows]
+        prompt_texts = [self._render_prompt_text(row["prompt"], include_image=image is not None) for row, image in zip(rows, images)]
+        full_texts = [self._render_full_text(row["prompt"], row["target"], include_image=image is not None) for row, image in zip(rows, images)]
+        prompt_batch = self.processor(
+            text=prompt_texts,
+            images=images,
+            padding=True,
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt",
+        )
+        encoded = self.processor(
+            text=full_texts,
+            images=images,
+            padding=True,
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt",
+        )
+        labels = encoded["input_ids"].clone()
+        for idx in range(labels.shape[0]):
+            prompt_len = int(prompt_batch["attention_mask"][idx].sum().item())
+            labels[idx, :prompt_len] = IGNORE_INDEX
+        encoded["labels"] = labels
+        return dict(encoded)
+
+    def _render_prompt_text(self, prompt: str, *, include_image: bool) -> str:
+        user_content: list[dict[str, str]] = []
+        if include_image:
+            user_content.append({"type": "image"})
+        user_content.append({"type": "text", "text": prompt})
+        return self.processor.apply_chat_template(
+            [{"role": "user", "content": user_content}],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+
+    def _render_full_text(self, prompt: str, target: str, *, include_image: bool) -> str:
+        user_content: list[dict[str, str]] = []
+        if include_image:
+            user_content.append({"type": "image"})
+        user_content.append({"type": "text", "text": prompt})
+        return self.processor.apply_chat_template(
+            [
+                {"role": "user", "content": user_content},
+                {"role": "assistant", "content": [{"type": "text", "text": target}]},
+            ],
+            tokenize=False,
+            add_generation_prompt=False,
+        )
+
 
 class MemorySupervisionDataset(Dataset[dict[str, str]]):
     def __init__(self, jsonl_path: str | Path) -> None:
-        self.rows = [MemoryTrainingRecord.model_validate(row) for row in read_jsonl(jsonl_path)]
+        self.jsonl_path = Path(jsonl_path)
+        self.rows = [MemoryTrainingRecord.model_validate(row) for row in read_jsonl(self.jsonl_path)]
 
     def __len__(self) -> int:
         return len(self.rows)
 
-    def __getitem__(self, index: int) -> dict[str, str]:
+    def __getitem__(self, index: int) -> dict[str, Any]:
         row = self.rows[index]
         history_text = "\n".join(
             f"- {item['text']} | status={item['status']}" for item in row.history
@@ -68,7 +128,8 @@ class MemorySupervisionDataset(Dataset[dict[str, str]]):
             f"<subtask>{row.next_subtask}</subtask>\n"
             f"<memory>{row.next_memory}</memory>"
         )
-        return {"prompt": prompt, "target": target}
+        image_path = _resolve_optional_path(self.jsonl_path.parent, row.observation_ref)
+        return {"prompt": prompt, "target": target, "image_path": image_path}
 
 
 @dataclass
@@ -129,6 +190,21 @@ class JsonlLowLevelDataset(Dataset[LowLevelTrainingRecord]):
 
 def _load_image(path: str) -> Image.Image:
     return Image.open(path).convert("RGB")
+
+
+def _load_optional_image(path: str | None) -> Image.Image | None:
+    if not path:
+        return Image.new("RGB", (224, 224), color="white")
+    return _load_image(path)
+
+
+def _resolve_optional_path(base_dir: Path, path: str | None) -> str | None:
+    if not path:
+        return None
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        candidate = (base_dir / candidate).resolve()
+    return str(candidate)
 
 
 def _pad_frames(pixel_values: torch.Tensor, max_frames: int) -> torch.Tensor:
