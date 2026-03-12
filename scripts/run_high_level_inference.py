@@ -15,27 +15,15 @@ def build_prompt(goal: str, prev_memory: str, history_items: list[str]) -> str:
     history_text = render_history(history_items)
     return (
         "You are the high-level planner for an embodied agent.\n\n"
-        "Task:\n"
-        "Given the current image, goal, previous memory, and history of past subtasks, predict:\n"
-        "1. the next subtask\n"
-        "2. the updated memory\n\n"
-        "Inputs:\n"
+        "Predict the next high-level subtask and the updated planning memory from the current image, goal, previous memory, and history of past subtasks.\n\n"
+        "Input:\n"
         f"Goal: {goal}\n"
         f"Previous memory: {prev_memory or 'None'}\n"
         "History:\n"
         f"{history_text}\n\n"
-        "Output:\n"
         "Return exactly two XML fields and nothing else:\n\n"
         "<subtask>...</subtask>\n"
-        "<memory>...</memory>\n\n"
-        "Rules:\n"
-        "- No explanation.\n"
-        "- No markdown.\n"
-        "- No extra text.\n"
-        "- Subtask must be the next concrete action.\n"
-        "- Memory must be short and useful for future planning.\n"
-        "- Use history and memory to avoid repeating completed successful steps.\n"
-        "- If a failure matters for the next decision, keep it in memory briefly.\n"
+        "<memory>...</memory>\n"
     )
 
 
