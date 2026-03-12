@@ -12,7 +12,7 @@ from open_pi_mem.utils.config import load_yaml
 
 
 def build_prompt(goal: str, prev_memory: str, history_items: list[str]) -> str:
-    history_text = "\n".join(history_items) if history_items else "- None | status=unknown"
+    history_text = render_history(history_items)
     return (
         "You are the high-level planner for a robot policy.\n"
         "Return exactly two XML fields and nothing else.\n"
@@ -24,6 +24,7 @@ def build_prompt(goal: str, prev_memory: str, history_items: list[str]) -> str:
         "- The subtask should be the next concrete action-level instruction.\n"
         "- The memory should be a short planning state summary for future steps.\n"
         "- If the previous memory is still valid, keep it concise and update only what changed.\n"
+        "- The history is provided as XML events; use status to avoid repeating completed steps.\n"
         "Example:\n"
         "<subtask>pull fridge door outward</subtask>\n"
         "<memory>reached the fridge handle; fridge door partly open</memory>\n"
@@ -32,6 +33,27 @@ def build_prompt(goal: str, prev_memory: str, history_items: list[str]) -> str:
         f"History:\n{history_text}\n"
         "Predict the next subtask and memory update.\n"
     )
+
+
+def render_history(history_items: list[str]) -> str:
+    if not history_items:
+        return '<event><subtask>None</subtask><status>unknown</status></event>'
+    return "\n".join(_history_item_to_xml(item) for item in history_items)
+
+
+def _history_item_to_xml(item: str) -> str:
+    text = item.strip()
+    if "|" not in text:
+        return f"<event><subtask>{text}</subtask><status>unknown</status></event>"
+    subtask_part, meta_part = text.split("|", 1)
+    subtask = subtask_part.strip()
+    status = "unknown"
+    for field in meta_part.split("|"):
+        field = field.strip()
+        if field.startswith("status="):
+            status = field.split("=", 1)[1].strip() or "unknown"
+            break
+    return f"<event><subtask>{subtask}</subtask><status>{status}</status></event>"
 
 
 def parse_prediction(text: str) -> tuple[str, str]:
