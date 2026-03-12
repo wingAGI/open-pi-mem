@@ -29,10 +29,7 @@ def build_prompt(goal: str, prev_memory: str, history_items: list[str]) -> str:
         f"Goal: {goal}\n"
         f"Previous memory: {prev_memory or 'None'}\n"
         "History:\n"
-        f"{history_text}\n\n"
-        "Output:\n"
-        "<subtask>...</subtask>\n"
-        "<memory>...</memory>\n"
+        f"{history_text}\n"
     )
 
 
