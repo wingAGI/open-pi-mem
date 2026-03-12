@@ -15,6 +15,18 @@ def build_prompt(goal: str, prev_memory: str, history_items: list[str]) -> str:
     history_text = "\n".join(history_items) if history_items else "- None | status=unknown"
     return (
         "You are the high-level planner for a robot policy.\n"
+        "Return exactly two XML fields and nothing else.\n"
+        "<subtask>...</subtask>\n"
+        "<memory>...</memory>\n"
+        "Rules:\n"
+        "- Output only these two lines.\n"
+        "- Do not add explanations.\n"
+        "- The subtask should be the next concrete action-level instruction.\n"
+        "- The memory should be a short planning state summary for future steps.\n"
+        "- If the previous memory is still valid, keep it concise and update only what changed.\n"
+        "Example:\n"
+        "<subtask>pull fridge door outward</subtask>\n"
+        "<memory>reached the fridge handle; fridge door partly open</memory>\n"
         f"Goal: {goal}\n"
         f"Previous memory: {prev_memory or 'None'}\n"
         f"History:\n{history_text}\n"
@@ -27,7 +39,22 @@ def parse_prediction(text: str) -> tuple[str, str]:
     memory_match = re.search(r"<memory>(.*?)</memory>", text, flags=re.DOTALL)
     subtask = subtask_match.group(1).strip() if subtask_match else ""
     memory = memory_match.group(1).strip() if memory_match else ""
-    return subtask, memory
+    if subtask or memory:
+        return subtask, memory
+    cleaned = text.strip()
+    if not cleaned:
+        return "", ""
+    first_line = cleaned.splitlines()[0].strip()
+    if first_line:
+        return first_line, prev_like_memory(cleaned)
+    return "", ""
+
+
+def prev_like_memory(text: str) -> str:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if len(lines) <= 1:
+        return ""
+    return " ".join(lines[1:]).strip()
 
 
 def main() -> None:
