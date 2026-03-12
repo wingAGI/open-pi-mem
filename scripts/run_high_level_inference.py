@@ -29,7 +29,8 @@ def build_prompt(goal: str, prev_memory: str, history_items: list[str]) -> str:
         f"Goal: {goal}\n"
         f"Previous memory: {prev_memory or 'None'}\n"
         "History:\n"
-        f"{history_text}\n"
+        f"{history_text}\n\n"
+        "Stop immediately after </memory>.\n"
     )
 
 
@@ -55,6 +56,7 @@ def _history_item_to_xml(item: str) -> str:
 
 
 def parse_prediction(text: str) -> tuple[str, str]:
+    text = truncate_after_first_memory(text)
     subtask_match = re.search(r"<subtask>(.*?)</subtask>", text, flags=re.DOTALL)
     memory_match = re.search(r"<memory>(.*?)</memory>", text, flags=re.DOTALL)
     subtask = subtask_match.group(1).strip() if subtask_match else ""
@@ -75,6 +77,14 @@ def prev_like_memory(text: str) -> str:
     if len(lines) <= 1:
         return ""
     return " ".join(lines[1:]).strip()
+
+
+def truncate_after_first_memory(text: str) -> str:
+    end_tag = "</memory>"
+    end_index = text.find(end_tag)
+    if end_index == -1:
+        return text
+    return text[: end_index + len(end_tag)]
 
 
 def main() -> None:
