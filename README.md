@@ -276,6 +276,10 @@ Stop immediately after </memory>.
 
 Test image:
 
+This checked-in frame is only a placeholder smoke-test image from `examples/frames/`.
+It is not semantically aligned with the fridge task text below, so this example should be read as a
+pipeline validation example for multimodal loading, prompting, and XML parsing, not as a meaningful planning benchmark.
+
 ![frame_03](examples/frames/frame_03.png)
 
 Test command:
@@ -330,6 +334,7 @@ next_memory: reached the fridge handle; fridge door is being opened
 
 Current behavior:
 
+- this README example validates the end-to-end inference path, not image-task semantic correctness
 - the VLM often repeats valid XML blocks after the first `<memory>`
 - the script truncates at the first `</memory>` and parses only the first `<subtask>` / `<memory>` pair
 - this makes the final returned prediction usable even when generation keeps going
