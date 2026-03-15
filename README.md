@@ -1,273 +1,274 @@
 # open-pi-mem
 
-An open reproduction framework for `MEM: Multi-Scale Embodied Memory for Vision Language Action Models`.
+An open reproduction of **MEM: Multi-Scale Embodied Memory for Vision Language Action Models**.
 
-This repo is not a claim of exact PI reproduction. It is a practical engineering baseline for rebuilding the method around open components and explicit assumptions.
+A practical two-level hierarchical robot policy: plan what to do next (high-level) + execute action sequences (low-level).
 
-## What Changed In This Revision
+## Quick Start
 
-- real `transformers` backbones replace the previous `Tiny*` placeholders
-- Gemma-compatible causal LM loading is wired through `AutoModelForCausalLM`
-- SigLIP-compatible vision loading is wired through `AutoModel` + `AutoImageProcessor`
-- optional VLM checkpoint import is supported for text tower, vision tower, or a combined checkpoint
-- high-level memory data generation can call a real OpenAI-compatible LLM provider
-- episode segmentation and success/failure annotation now have explicit preprocessing logic
-- low-level training now uses real `Dataset` / `DataLoader` code
-- a minimal RLDS-to-JSONL path is added for DROID / Bridge V2 style data
+```bash
+# Install
+pip install torch transformers datasets pyyaml
 
-## Scope
+# Test locally (no data needed)
+python scripts/generate_memory_data.py \
+  --input examples/episodes.sample.jsonl \
+  --output memory_supervision.jsonl \
+  --provider rule_based
 
-The paper leaves several implementation details unspecified: exact parameter sharing, exact loss weighting, full data mixture, and the internal training recipe. This repo makes those choices explicit in config instead of hiding them.
+# Train high-level policy
+python scripts/train_high_level.py --config configs/high_level_vlm.yaml
+
+# Test inference
+python scripts/run_high_level_inference.py \
+  --config configs/high_level_vlm.yaml \
+  --image examples/frames/frame_0.png \
+  --goal "open the fridge" \
+  --prev-memory "" \
+  --history-item "reached kitchen | status=success"
+```
 
 ## Architecture
 
-### High-level policy
+### High-Level Policy
+- **Model:** Qwen/Qwen2.5-VL-3B-Instruct (vision-language model)
+- **Input:** current image, goal, past memory, subtask history
+- **Output:** structured text `<subtask>...</subtask><memory>...</memory>`
+- **Training:** causal language modeling on structured targets
 
-- backbone: Gemma-style causal LM
-- supervision format: causal LM over a structured target
-- target format:
+### Low-Level Policy
+- **Text:** Gemma-2-2b-it encoder → hidden states
+- **Vision:** SigLIP-base-patch16-224 + MEM temporal attention layers
+- **Fusion:** text + vision + proprioception → MLP → action predictions
+- **Outputs:**
+  - Action chunk regression (MSE loss)
+  - FAST token head (optional, cross-entropy)
+  - Flow matching auxiliary (optional, smooth L1)
 
-```text
-<subtask>pick up the mug</subtask>
-<memory>mug moved from sink to counter</memory>
-```
+## Training
 
-- training input includes goal, previous memory, and subtask history
-- visual context is scaffolded and can be attached later if you want a full image-conditioned planner
-
-### Low-level policy
-
-- text backbone: Gemma-style causal LM hidden states
-- vision tower: SigLIP-style encoder
-- video memory: MEM-style temporal attention on patch tokens
-- proprio projection + text/video fusion
-- outputs:
-  - action chunk regression head
-  - optional FAST token head
-  - detached action expert path to match the paper's statement that action-expert gradients do not flow into the VLM backbone
-
-## Weight Initialization And VLM Import
-
-`configs/high_level.yaml` and `configs/low_level.yaml` now support:
-
-- `backbone_name`: HF model name or local path for the text model
-- `vision_tower_name`: HF model name or local path for the vision model
-- `text_checkpoint`: optional extra checkpoint just for the text tower
-- `vision_checkpoint`: optional extra checkpoint just for the vision tower
-- `vlm_checkpoint`: optional combined checkpoint with prefix filtering
-- `vlm_text_prefixes` / `vlm_vision_prefixes`: how to split a combined checkpoint into the two towers
-
-That is the hook for "start from a VLM, then continue training MEM".
-
-## Episode Annotation App
-
-A lightweight local web app is included under `web/annotator/` for manually labeling episode videos into MEM-style high-level supervision.
-
-What it supports:
-
-- load one or more local video files in the browser
-- first place breakpoints only, then auto-build continuous segments
-- label each generated segment with `text`, `status`, `confidence`, and `notes`
-- save the current episode or all episodes directly into the repository
-- import existing JSON / JSONL annotations back into the UI
-
-Start it locally:
+### High-Level
 
 ```bash
-python scripts/run_annotation_app.py --port 8765
+python scripts/train_high_level.py --config configs/high_level_vlm.yaml
 ```
 
-Then open:
+**Config:** `configs/high_level_vlm.yaml`
+- Model: Qwen/Qwen2.5-VL-3B-Instruct
+- Learning rate: 2.0e-5
+- Batch size: 1
+- Precision: bf16
 
-```text
-http://127.0.0.1:8765
+**Data format (JSONL):**
+```json
+{
+  "goal": "pick up the mug",
+  "previous_memory": "found mug in sink",
+  "history": [
+    {"subtask": "reach sink", "status": "success"},
+    {"subtask": "grasp mug", "status": "unknown"}
+  ],
+  "subtask": "lift mug",
+  "memory": "mug lifted from sink"
+}
 ```
 
-Export format is aligned with the high-level episode schema used by `scripts/generate_memory_data.py`.
-
-Notes:
-
-- workflow is now breakpoint-first: if breakpoints are `[b1, b2, ...]`, the app generates segments `[0,b1] [b1,b2] ... [bn,duration]`
-- local video files stay in the browser; the app writes annotations into `data/manual_annotations/` and records `video_path` as a filename or manually edited relative path
-- browser localStorage keeps annotation text, but local file handles are not persisted across refreshes, so reload the video if needed
-- the app is intended for high-quality human labeling, not collaborative multi-user annotation
-
-Generate high-level training data directly from manual annotations:
+### Low-Level
 
 ```bash
-export OPENAI_API_KEY=...
-PYTHONPATH=src python scripts/generate_manual_high_level_data.py \
-  --input data/manual_annotations/episodes \
-  --output data/manual_annotations/memory_supervision.manual.jsonl \
-  --provider openai_compatible \
-  --model gpt-4.1-mini
+python scripts/train_low_level.py --config configs/low_level.yaml
 ```
 
-`--input` also accepts a single episode `.json` file or `episodes.annotated.jsonl`.
+**Config:** `configs/low_level.yaml`
+- Text model: google/gemma-2-2b-it
+- Vision model: google/siglip-base-patch16-224
+- Action dim: 14 (robot-specific)
+- Action horizon: 16 (predict 16 steps ahead)
+- Learning rate: 1.0e-4
+- Batch size: 1
 
-## Stage A Local Smoke Test
-
-A minimal local test set is checked into `examples/`:
-
-- `examples/episodes.sample.jsonl`: 4 high-level episodes
-- `examples/low_level_rollouts.sample.jsonl`: 16 low-level windows
-- `examples/frames/`: 8 local PNG frames
-
-Generate memory supervision locally without calling an external LLM:
-
-```bash
-PYTHONPATH=src python scripts/generate_memory_data.py   --input examples/episodes.sample.jsonl   --output examples/memory_supervision.sample.jsonl   --provider rule_based
+**Data format (JSONL):**
+```json
+{
+  "instruction": "pick up the mug",
+  "frames": ["frame_0.png", "frame_1.png", ...],
+  "proprio": [[a1, a2, ...], ...],
+  "actions": [[a1, a2, ...], ...]
+}
 ```
 
-Prepare configs for the sample files by overriding the dataset paths or editing the YAMLs.
+## Data Preparation
 
-These samples are for pipeline validation only:
+### High-Level Supervision
 
-- schema validation
-- segmentation / success-failure annotation
-- image loading
-- low-level batch collation
-
-They are not intended as meaningful training data.
-
-## High-Level Memory Supervision Pipeline
-
-Open datasets rarely provide PI-style long-horizon language memory labels. The pipeline here is:
-
-1. load raw episodes from JSONL
-2. segment the episode into subtasks
-3. infer success / failure labels from metadata or reward heuristics
-4. build an LLM prompt from `(goal, previous_memory, history)`
-5. call a real provider or a rule-based fallback
-6. save JSONL supervision records
-
-The raw episode schema can include either:
-
-- explicit `subtasks`
-- `metadata.subtask_events`
-- per-step instruction streams such as `metadata.language_instruction_per_step`
-- success signals such as `metadata.success_subtask_indices`, `metadata.failure_subtask_indices`, `metadata.terminal_success`, or `metadata.rewards`
-
-### Generate memory labels
-
-Rule-based fallback:
+**From raw episodes (automatic generation):**
 
 ```bash
+# Using local rules (no API)
 python scripts/generate_memory_data.py \
   --input episodes.jsonl \
   --output memory_supervision.jsonl \
   --provider rule_based
-```
 
-OpenAI-compatible provider:
-
-```bash
+# Using OpenAI-compatible API
 export OPENAI_API_KEY=...
 python scripts/generate_memory_data.py \
   --input episodes.jsonl \
   --output memory_supervision.jsonl \
   --provider openai_compatible \
-  --model gpt-4.1-mini \
-  --base-url https://api.openai.com/v1
+  --model gpt-4-mini
 ```
 
-You can point `--base-url` at a vLLM or other OpenAI-compatible server.
-
-## Low-Level Data Path For DROID / Bridge V2
-
-The practical minimal route is:
-
-1. obtain a local RLDS / TFDS export for DROID or Bridge V2
-2. convert episodes into fixed windows of frames, proprio, and action chunks
-3. save them as `low_level_rollouts.jsonl`
-4. train with `scripts/train_low_level.py`
-
-### Prepare windows from RLDS
+**Manual annotation (web UI):**
 
 ```bash
+python scripts/run_annotation_app.py --port 8765
+# Open http://127.0.0.1:8765
+```
+
+Then export as memory supervision:
+```bash
+python scripts/generate_manual_high_level_data.py \
+  --input data/manual_annotations/episodes \
+  --output memory_supervision.manual.jsonl \
+  --provider openai_compatible \
+  --model gpt-4-mini
+```
+
+### Low-Level Data (Robot Trajectories)
+
+**From DROID or Bridge V2 datasets:**
+
+```bash
+# Requires local TFDS export (see DROID/Bridge V2 docs)
 python scripts/prepare_open_dataset.py \
   --dataset droid \
   --data-dir /path/to/tfds \
-  --split train \
-  --output low_level_rollouts.jsonl \
-  --max-episodes 8
+  --output low_level_rollouts.jsonl
 ```
 
-For Bridge V2:
+## Inference
 
-```bash
-python scripts/prepare_open_dataset.py \
-  --dataset bridge_v2 \
-  --data-dir /path/to/tfds \
-  --split train \
-  --output low_level_rollouts.jsonl \
-  --max-episodes 8
-```
-
-Notes:
-
-- this path expects local `tensorflow` + `tensorflow_datasets`
-- image key and instruction key can vary across exports, so `--frame-key` and `--instruction-key` are exposed
-- extracted frames are cached under `open_pi_mem_cache/` inside the dataset root
-
-## Training
-
-### High-level
-
-```bash
-python scripts/train_high_level.py \
-  --config configs/high_level.yaml
-```
-
-To train the high-level policy with a single-image VLM backbone instead of the text-only scaffold:
-
-```bash
-python scripts/train_high_level.py \
-  --config configs/high_level_vlm.yaml
-```
-
-Run minimal high-level inference on one image:
+### High-Level Planning
 
 ```bash
 python scripts/run_high_level_inference.py \
   --config configs/high_level_vlm.yaml \
-  --image /path/to/current_frame.jpg \
-  --goal "put the milk on the counter and close the fridge" \
-  --prev-memory "opened the fridge; found the milk carton" \
+  --image /path/to/frame.jpg \
+  --goal "put the milk on the counter" \
+  --prev-memory "opened the fridge" \
   --history-item "reach for fridge handle | status=success" \
-  --history-item "pull fridge door outward | status=success"
+  --history-item "pull fridge door | status=success"
 ```
 
-### Low-level
+### Low-Level Execution
+
+Currently training-only. To add inference:
+- Load checkpoint: `model.load_state_dict(torch.load(ckpt))`
+- Forward pass: `outputs = model(input_ids, video, proprio)`
+- Extract actions: `outputs["action_chunk"]`
+
+## Configuration
+
+Key settings in YAML configs:
+
+**High-level (`high_level_vlm.yaml`):**
+```yaml
+model:
+  multimodal_backbone_name: Qwen/Qwen2.5-VL-3B-Instruct
+  freeze_text_backbone: false
+data:
+  train_jsonl: memory_supervision.jsonl
+  max_total_tokens: 1024
+trainer:
+  learning_rate: 2.0e-5
+  batch_size: 1
+```
+
+**Low-level (`low_level.yaml`):**
+```yaml
+model:
+  backbone_name: google/gemma-2-2b-it
+  vision_tower_name: google/siglip-base-patch16-224
+  action_dim: 14
+  action_chunk_horizon: 16
+  use_fast_head: true
+loss:
+  action_mse_weight: 1.0
+  fast_token_weight: 1.0
+  flow_matching_weight: 1.0
+```
+
+## Repository Structure
+
+```
+open-pi-mem/
+├── configs/                 # YAML experiment configs
+├── scripts/                 # Training and data scripts
+├── src/open_pi_mem/
+│   ├── models/             # Policy architectures
+│   ├── training/           # Trainers and loss functions
+│   ├── data/               # Dataset loaders and adapters
+│   └── utils/              # Config and I/O utilities
+├── examples/               # Sample data for testing
+├── docs/                   # Design notes
+└── README.md
+```
+
+## Design Choices
+
+See `docs/design.md` for rationale. Key decisions:
+
+- **Separate backbones:** high and low policies have independent text/vision encoders
+- **VLM initialization:** both policies initialized from pretrained VLMs (not random)
+- **Structured high-level output:** causal LM on `<subtask>...</subtask><memory>...</memory>` (not classification)
+- **Detached action expert:** gradients from action prediction don't flow into vision/text backbone
+- **Multi-loss training:** action MSE + optional FAST tokens + optional flow matching
+
+## Testing
+
+**Smoke test with included examples:**
 
 ```bash
-python scripts/train_low_level.py \
-  --config configs/low_level.yaml
+# ~3 minutes total, validates the full pipeline
+python scripts/generate_memory_data.py \
+  --input examples/episodes.sample.jsonl \
+  --output examples/memory_supervision.sample.jsonl \
+  --provider rule_based
+
+python scripts/train_high_level.py --config configs/high_level_vlm.yaml
+python scripts/train_low_level.py --config configs/low_level.yaml
 ```
 
-## Repository Layout
+This verifies:
+- Data loading and preprocessing
+- Model initialization
+- Training loop (forward pass, backward pass, optimization)
+- Schema validation
 
-```text
-open-pi-mem/
-  configs/                 Default experiment configs
-  docs/                    Design notes
-  prompts/                 LLM prompts for memory supervision
-  scripts/                 CLI entrypoints
-  src/open_pi_mem/
-    data/                  Dataset schemas, builders, open-data adapters
-    models/                HF backbones, video memory, policies, action expert
-    training/              Losses and trainers
-    utils/                 Config and I/O helpers
+Does not verify:
+- Real-world task success (need real robot data)
+- Convergence or meaningful learning (10 training steps is too few)
+
+## Not Yet Implemented
+
+- **Low-level inference script** (just training for now)
+- **Multi-stage/joint training** (separate training only)
+- **Distributed training** (FSDP/DDP)
+- **Evaluation metrics** (success rate, trajectory metrics)
+- **Real-time robot control** (policy only, no hardware integration)
+
+## Citation
+
+```bibtex
+@article{nasiriany2024mem,
+  title={MEM: Multi-Scale Embodied Memory for Vision Language Action Models},
+  author={Nasiriany, Sameh and others},
+  journal={arXiv preprint arXiv:2407.09762},
+  year={2024}
+}
 ```
 
-## Current Boundaries
+## License
 
-This repo still leaves several things to the user:
-
-- exact multi-stage or joint training schedule
-- exact action tokenization for a faithful FAST reproduction
-- true PI-scale data mixture
-- distributed training / FSDP / LoRA recipes
-- real-time control integration
-
-What is implemented now is the shortest route to a serious open reproduction attempt instead of a paper-only sketch.
+MIT
