@@ -12,79 +12,22 @@ from open_pi_mem.utils.config import load_yaml
 
 
 def build_prompt(goal: str, prev_memory: str, history_items: list[str]) -> str:
-    history_text = render_history(history_items)
+    history_text = "\n".join(history_items) if history_items else "- None | status=unknown"
     return (
-        "You are the high-level planner for an embodied agent.\n\n"
-        "Predict the next high-level subtask and the updated planning memory from the current image, goal, previous memory, and history of past subtasks.\n\n"
-        "Example:\n"
-        "Goal: open the fridge and take out the milk\n"
-        "Previous memory: reached the fridge handle\n"
-        "History:\n"
-        "<event><subtask>reach for fridge handle</subtask><status>success</status></event>\n"
-        "<event><subtask>pull fridge door outward</subtask><status>unknown</status></event>\n"
-        "Output:\n"
-        "<subtask>pull fridge door outward</subtask>\n"
-        "<memory>reached the fridge handle; fridge door is being opened</memory>\n\n"
-        "Input:\n"
+        "You are the high-level planner for a robot policy.\n"
         f"Goal: {goal}\n"
         f"Previous memory: {prev_memory or 'None'}\n"
-        "History:\n"
-        f"{history_text}\n\n"
-        "Stop immediately after </memory>.\n"
+        f"History:\n{history_text}\n"
+        "Predict the next subtask and memory update.\n"
     )
 
 
-def render_history(history_items: list[str]) -> str:
-    if not history_items:
-        return '<event><subtask>None</subtask><status>unknown</status></event>'
-    return "\n".join(_history_item_to_xml(item) for item in history_items)
-
-
-def _history_item_to_xml(item: str) -> str:
-    text = item.strip()
-    if "|" not in text:
-        return f"<event><subtask>{text}</subtask><status>unknown</status></event>"
-    subtask_part, meta_part = text.split("|", 1)
-    subtask = subtask_part.strip()
-    status = "unknown"
-    for field in meta_part.split("|"):
-        field = field.strip()
-        if field.startswith("status="):
-            status = field.split("=", 1)[1].strip() or "unknown"
-            break
-    return f"<event><subtask>{subtask}</subtask><status>{status}</status></event>"
-
-
 def parse_prediction(text: str) -> tuple[str, str]:
-    text = truncate_after_first_memory(text)
     subtask_match = re.search(r"<subtask>(.*?)</subtask>", text, flags=re.DOTALL)
     memory_match = re.search(r"<memory>(.*?)</memory>", text, flags=re.DOTALL)
     subtask = subtask_match.group(1).strip() if subtask_match else ""
     memory = memory_match.group(1).strip() if memory_match else ""
-    if subtask or memory:
-        return subtask, memory
-    cleaned = text.strip()
-    if not cleaned:
-        return "", ""
-    first_line = cleaned.splitlines()[0].strip()
-    if first_line:
-        return first_line, prev_like_memory(cleaned)
-    return "", ""
-
-
-def prev_like_memory(text: str) -> str:
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    if len(lines) <= 1:
-        return ""
-    return " ".join(lines[1:]).strip()
-
-
-def truncate_after_first_memory(text: str) -> str:
-    end_tag = "</memory>"
-    end_index = text.find(end_tag)
-    if end_index == -1:
-        return text
-    return text[: end_index + len(end_tag)]
+    return subtask, memory
 
 
 def main() -> None:
