@@ -66,13 +66,21 @@ class HighLevelPolicy(nn.Module):
             self.model.requires_grad_(False)
 
     def encode_visual_context(self, pixel_values: torch.Tensor | None) -> torch.Tensor | None:
+        """Encode visual context to hidden representation.
+
+        Args:
+            pixel_values: (B, C, H, W) - image tensor or None
+
+        Returns:
+            (B, hidden_size) - projected vision embeddings, or None if multimodal or pixel_values is None
+        """
         if self.is_multimodal:
             return None
         if pixel_values is None:
             return None
-        tokens = self.vision_tower(pixel_values)
-        pooled = tokens.mean(dim=1)
-        return self.vision_projector(pooled)
+        tokens = self.vision_tower(pixel_values)  # (B, num_patches, vision_hidden_size)
+        pooled = tokens.mean(dim=1)  # (B, vision_hidden_size)
+        return self.vision_projector(pooled)  # (B, hidden_size)
 
     def forward(
         self,
@@ -82,37 +90,53 @@ class HighLevelPolicy(nn.Module):
         pixel_values: torch.Tensor | None = None,
         **extra_inputs: Any,
     ) -> dict[str, torch.Tensor]:
+        """Forward pass for high-level policy.
+
+        Args:
+            input_ids: (B, L) - tokenized goal + memory + history
+            attention_mask: (B, L) - mask for padding
+            labels: (B, L) - target token IDs for language modeling
+            pixel_values: (B, C, H, W) - current observation image (optional for multimodal)
+            **extra_inputs: additional inputs for multimodal models
+
+        Returns:
+            dict with:
+                loss: scalar loss (if labels provided)
+                logits: (B, L, vocab_size) - language model logits
+                hidden_states: (B, L, hidden_size) - final layer representations
+                vision_context: (B, hidden_size) - visual features (text-only mode only)
+        """
         if self.is_multimodal:
             if self.model is None:
                 raise ValueError("Multimodal model is not initialized.")
             outputs = self.model(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                labels=labels,
-                pixel_values=pixel_values,
+                input_ids=input_ids,  # (B, L)
+                attention_mask=attention_mask,  # (B, L)
+                labels=labels,  # (B, L) if training
+                pixel_values=pixel_values,  # (B, C, H, W) if image provided
                 **extra_inputs,
             )
             hidden_states = getattr(outputs, "hidden_states", None)
-            hidden = hidden_states[-1] if hidden_states else outputs.logits
+            hidden = hidden_states[-1] if hidden_states else outputs.logits  # (B, L, hidden_size)
             return {
                 "loss": outputs.loss,
-                "logits": outputs.logits,
+                "logits": outputs.logits,  # (B, L, vocab_size)
                 "hidden_states": hidden,
             }
         outputs = self.text_backbone(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            labels=labels,
+            input_ids=input_ids,  # (B, L)
+            attention_mask=attention_mask,  # (B, L)
+            labels=labels,  # (B, L) if training
         )
-        hidden = outputs.hidden_states[-1]
+        hidden = outputs.hidden_states[-1]  # (B, L, hidden_size)
         result = {
             "loss": outputs.loss,
-            "logits": outputs.logits,
+            "logits": outputs.logits,  # (B, L, vocab_size)
             "hidden_states": hidden,
         }
         vision_context = self.encode_visual_context(pixel_values)
         if vision_context is not None:
-            result["vision_context"] = vision_context
+            result["vision_context"] = vision_context  # (B, hidden_size)
         return result
 
     @torch.no_grad()
@@ -123,17 +147,28 @@ class HighLevelPolicy(nn.Module):
         pixel_values: torch.Tensor | None = None,
         **generate_kwargs: Any,
     ) -> torch.Tensor:
+        """Autoregressive generation for structured output.
+
+        Args:
+            input_ids: (B, L) - prompt tokens (goal + memory + history)
+            attention_mask: (B, L) - attention mask
+            pixel_values: (B, C, H, W) - image for multimodal generation
+            **generate_kwargs: max_new_tokens, temperature, etc.
+
+        Returns:
+            (B, L') - generated token sequence including prompt
+        """
         if self.is_multimodal:
             if self.model is None:
                 raise ValueError("Multimodal model is not initialized.")
             return self.model.generate(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                pixel_values=pixel_values,
+                input_ids=input_ids,  # (B, L)
+                attention_mask=attention_mask,  # (B, L)
+                pixel_values=pixel_values,  # (B, C, H, W)
                 **generate_kwargs,
-            )
+            )  # returns (B, L+L')
         return self.text_backbone.model.generate(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
+            input_ids=input_ids,  # (B, L)
+            attention_mask=attention_mask,  # (B, L)
             **generate_kwargs,
-        )
+        )  # returns (B, L+L')
