@@ -1,0 +1,159 @@
+{
+  "goal": "Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.",
+  "source": "/Users/hex/workspace/具身智能/open-pi-mem/data/rmbench_local/observe_and_pickup_demo_clean/episode0.mp4",
+  "source_fps_assumed": 30.0,
+  "source_duration_sec": 4.966667,
+  "planner_hz": 1.0,
+  "sampled_frames": 5,
+  "model_path": "gemini-3.1-pro-preview",
+  "provider": "gemini-sdk-video",
+  "records": [
+    {
+      "frame_index": 0,
+      "timestamp_sec": 0.0,
+      "image_path": "preview_frames/step_000/frame_001.png",
+      "input_image_paths": [
+        "preview_frames/step_000/frame_001.png"
+      ],
+      "input_frame_timestamps_sec": [
+        0.025
+      ],
+      "input_video_path": "clips/step_000.mp4",
+      "input_clip_start_sec": 0.0,
+      "input_clip_end_sec": 0.05,
+      "goal": "Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.",
+      "input_memory": "",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 0.\nThis clip covers time 0.00s to 0.05s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.\nPrevious memory: None\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>move to the black computer mouse</subtask>\n<memory>The target object is a black computer mouse.</memory>",
+      "thought_summary": "**Initial Assessment and Object Identification**\n\nOkay, the task is to predict the next robot action (subtask) and update its memory based on this short video clip. The overall goal is to pick up the corresponding object from a shelf and lift it. Initially, there's a black computer mouse on the shelf, which is the target. There are a few objects on the table, too. The first thing I see in the initial frames is a black computer mouse on the shelf. On the table, there are other objects, including a couple of black objects that appear to be mice. I need to distinguish the target from other objects.\n\n**Object Differentiation and Confirmation**\n\nLet me break down the scene carefully. Shelf: a black computer mouse. On the table, there’s a silver bell, a blue car, a blue stapler, and two black objects. They look like mice. But wait, I need to be exact. It is important for object recognition. Re-examining the table: I confirm one black mouse near the bell and another one, which looks very similar to the one on the shelf. So, the target on the shelf is a black computer mouse. I need the robot to pick up the *corresponding* object from the table.\n\n**Establishing Target and Potential Robot Action**\n\nThe obvious target object is the black computer mouse on the table. However, there are two of them. I need to make sure I am selecting the right one. Let's look again: Shelf: black computer mouse; Table: silver bell, black computer mouse, blue car, blue stapler, black computer mouse. Right, two black computer mice. I am going to have to make a choice. The plan is the robot will move to the mouse.\n\n**Considering Subtask Format and Timing**\n\nBased on the prompt, the robot would typically start moving toward the target. But, the screen has not obscured the target yet. The prompt does say to pick up the corresponding object, which is clearly the mouse from the table.\n\n**Object Localization**\n\nOkay, I need to clarify the objects.\nShelf: black computer mouse.\nTable:\n- Left: silver bell, black computer mouse.\n- Right: blue car, blue stapler, black computer mouse.\n\nNow, I can see the table has two objects that *look* like black computer mice. The one on the right looks more like the one on the shelf. The robot arm is on the left. So I will have the robot move to the black computer mouse.\n\n**Finalizing Subtask and Memory**\n\nI'll propose the subtask as \"move to the black computer mouse.\" The memory will be: \"The target object is a black computer mouse.\" Since this is step 0, and the robot hasn't taken any action, let's keep it simple. The subtask is, \"move to the black computer mouse,\" and the memory will be: \"The target object is a black computer mouse.\" The robot's goal is to pick up the target mouse.\n\n**Refinement and Verification**\n\nSo, let's refine this again. I can say the subtask is: \"move to the black computer mouse.\" The memory is: \"The target object is a black computer mouse.\" I am going to double-check objects one more time just to be sure. Shelf: black computer mouse. Table: silver bell, black computer mouse, blue car, blue stapler, black computer mouse. Yes, two black computer mice!\nSubtask: \"move to the black computer mouse.\" Memory: \"The target object is a black computer mouse.\"",
+      "thoughts_token_count": 1368,
+      "thought_signature_present": true,
+      "next_subtask": "move to the black computer mouse",
+      "next_memory": "The target object is a black computer mouse."
+    },
+    {
+      "frame_index": 1,
+      "timestamp_sec": 1.0,
+      "image_path": "preview_frames/step_001/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_001/frame_001.png",
+        "preview_frames/step_001/frame_002.png",
+        "preview_frames/step_001/frame_003.png",
+        "preview_frames/step_001/frame_004.png",
+        "preview_frames/step_001/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "input_video_path": "clips/step_001.mp4",
+      "input_clip_start_sec": 0.0,
+      "input_clip_end_sec": 1.0,
+      "goal": "Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.",
+      "input_memory": "The target object is a black computer mouse.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 1.\nThis clip covers time 0.00s to 1.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.\nPrevious memory: The target object is a black computer mouse.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Reach for the black computer mouse</subtask>\n<memory>The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is reaching for the black computer mouse on the table.</memory>",
+      "thought_summary": "**Analyzing the Robot's Task and State**\n\nOkay, so I'm presented with a video clip and some contextual information. The goal is to figure out the robot's next action and maintain a current memory of the situation.  Let's break this down systematically, focusing on the details provided.\n\nThe initial setup is clear: a target object (black computer mouse) on a shelf, and some random objects on the table. The key change is the screen obscuring the target on the shelf. The task is to identify and retrieve the matching mouse from the table.\n\nInitially, I identified \"Pick up the black computer mouse from the table\" as the next subtask, but that seems a bit too high-level and not atomic enough given the observed action in the video. The robot arm *is* moving, so a more precise, atomic instruction seems appropriate here. Therefore, the robot is **reaching for** the mouse, not yet picking it up.\n\nLooking again at the video, I confirm the robot arm is indeed *reaching*, not yet grasping.  So, \"Reach for the black computer mouse\" is the subtask.\n\nNow, for the memory. The previous memory was simply the target object. However, the video shows a screen obscuring the target, and the robot is moving. Therefore, the memory needs to reflect those *changes*. So, my updated memory is: \"The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is reaching for the black computer mouse on the table.\"\n\nI'm confident in the subtask and updated memory now. The task is to reach for the target, and my memory accurately represents the current world state. Let's make sure the details are clear, and I haven't missed anything. I'm double checking the objects in the video, to confirm the mouse is present and that it's what I expect. Confirmed.\n\nTherefore, the Subtask is \"Reach for the black computer mouse\". The Memory is: \"The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is reaching for the black computer mouse on the table.\"",
+      "thoughts_token_count": 582,
+      "thought_signature_present": true,
+      "next_subtask": "Reach for the black computer mouse",
+      "next_memory": "The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is reaching for the black computer mouse on the table."
+    },
+    {
+      "frame_index": 2,
+      "timestamp_sec": 2.0,
+      "image_path": "preview_frames/step_002/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_002/frame_001.png",
+        "preview_frames/step_002/frame_002.png",
+        "preview_frames/step_002/frame_003.png",
+        "preview_frames/step_002/frame_004.png",
+        "preview_frames/step_002/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0
+      ],
+      "input_video_path": "clips/step_002.mp4",
+      "input_clip_start_sec": 1.0,
+      "input_clip_end_sec": 2.0,
+      "goal": "Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.",
+      "input_memory": "The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is reaching for the black computer mouse on the table.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 2.\nThis clip covers time 1.00s to 2.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.\nPrevious memory: The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is reaching for the black computer mouse on the table.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Lift the black computer mouse.</subtask>\n<memory>The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot has grasped the black computer mouse on the table.</memory>",
+      "thought_summary": "**My Current Operational State**\n\nOkay, here's the situation. My objective is straightforward: I need to acquire that black computer mouse and lift it. I recall that the mouse is indeed the target, and it's on the table. The screen was momentarily obscuring it, but the robot has managed to locate the mouse on the table.\n\nNow, looking at the current video feed, from the 1.00 to 2.00-second mark, I see the gripper making its move and successfully grasping the black mouse. Excellent, the grip seems firm.\n\nTherefore, since the mouse is now securely held by the gripper, the next step is crystal clear: lift it.\n\nI'll update my internal memory: the black computer mouse is currently grasped by the robot's gripper on the table. Proceeding to the next subtask, lifting the object.",
+      "thoughts_token_count": 137,
+      "thought_signature_present": true,
+      "next_subtask": "Lift the black computer mouse.",
+      "next_memory": "The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot has grasped the black computer mouse on the table."
+    },
+    {
+      "frame_index": 3,
+      "timestamp_sec": 3.0,
+      "image_path": "preview_frames/step_003/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_003/frame_001.png",
+        "preview_frames/step_003/frame_002.png",
+        "preview_frames/step_003/frame_003.png",
+        "preview_frames/step_003/frame_004.png",
+        "preview_frames/step_003/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        2.0,
+        2.25,
+        2.5,
+        2.75,
+        3.0
+      ],
+      "input_video_path": "clips/step_003.mp4",
+      "input_clip_start_sec": 2.0,
+      "input_clip_end_sec": 3.0,
+      "goal": "Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.",
+      "input_memory": "The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot has grasped the black computer mouse on the table.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 3.\nThis clip covers time 2.00s to 3.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.\nPrevious memory: The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot has grasped the black computer mouse on the table.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>lift the black computer mouse</subtask>\n<memory>The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is lifting the black computer mouse.</memory>",
+      "thought_summary": "**Analyzing the Lifting Subtask**\n\nOkay, so the primary goal is clear: pick up that black computer mouse and lift it. Let's break this down. My previous internal model indicates the robot has successfully grasped the mouse on the table. Now, the current video segment (2.00s to 3.00s) shows the arm actually *lifting* the mouse. So, the action of \"lifting the black computer mouse\" is currently underway, and it looks like it's either complete or still in progress – I need to confirm that.\n\nThe goal is specifically to \"lift it up,\" which means this \"lifting\" action is the current subtask. Let's see... Memory confirms: The robot *has* grasped and *is* lifting the black computer mouse. Right, let's visually verify this in the video feed. I can see the arm moving upwards with the mouse, confirms the subtask of lifting. So, to continue lifting or have just achieved \"lifting the black computer mouse\" is the only option here.\nAgain, based on the robot's past internal models: the robot has grasped the mouse on the table. The current clip shows the robot lifting the mouse. The subtask is now simply to lift the black computer mouse. Memory is in alignment: The robot is indeed lifting the mouse.",
+      "thoughts_token_count": 228,
+      "thought_signature_present": true,
+      "next_subtask": "lift the black computer mouse",
+      "next_memory": "The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is lifting the black computer mouse."
+    },
+    {
+      "frame_index": 4,
+      "timestamp_sec": 4.0,
+      "image_path": "preview_frames/step_004/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_004/frame_001.png",
+        "preview_frames/step_004/frame_002.png",
+        "preview_frames/step_004/frame_003.png",
+        "preview_frames/step_004/frame_004.png",
+        "preview_frames/step_004/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        3.0,
+        3.25,
+        3.5,
+        3.75,
+        4.0
+      ],
+      "input_video_path": "clips/step_004.mp4",
+      "input_clip_start_sec": 3.0,
+      "input_clip_end_sec": 4.0,
+      "goal": "Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.",
+      "input_memory": "The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is lifting the black computer mouse.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 4.\nThis clip covers time 3.00s to 4.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Initially, there is one target object on the shelf and five random objects on the table. Then, a screen obscures the target object. Pick up the corresponding target object from the table and lift it up.\nPrevious memory: The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is lifting the black computer mouse.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>lift the black computer mouse</subtask>\n<memory>The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is lifting the black computer mouse.</memory>",
+      "thought_summary": "**My Current Understanding of the Task**\n\nOkay, so the primary goal here is to pick up and lift a black computer mouse. I've got that locked in – black computer mouse, target object. My previous memory confirms this; the mouse has been obscured at one point, but I've already confirmed it's a black computer mouse.\n\nNow, looking at the current video clip, specifically from the 3 to 4-second mark, the robot is *already* holding the mouse and lifting it. Interesting. Given the overall goal is simply to \"pick up the corresponding target object from the table and lift it up\", which I thought was the overall goal, and now the robot is in the lifting phase. This means I need to re-evaluate my planned subtask. \"Continue lifting\" is the obvious choice. The robot appears to be either completing the lift or in the midst of it.\n\nLet's verify this observation with a quick look at the video; yes, the arm is definitely moving upwards with the mouse. So, the subtask should definitely be to \"lift the black computer mouse\".\n\nChecking my memory again, it aligns perfectly: \"The robot is lifting the black computer mouse\". Now that I see it, and I know it, that memory remains valid. In fact, perhaps \"The robot has lifted the black computer mouse\" is also a good description of the situation. Given that the action is ongoing, I'll go with the more accurate \"The robot is lifting the black computer mouse.\"\n\nSo, the definitive subtask is: \"lift the black computer mouse.\" I'm confident in that.",
+      "thoughts_token_count": 312,
+      "thought_signature_present": true,
+      "next_subtask": "lift the black computer mouse",
+      "next_memory": "The target object is a black computer mouse. The screen has obscured the target object on the shelf. The robot is lifting the black computer mouse."
+    }
+  ]
+}

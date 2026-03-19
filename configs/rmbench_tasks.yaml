@@ -1,0 +1,183 @@
+# RMBench Task Configuration for open-pi-mem Evaluation
+#
+# Defines M(1) and M(n) tasks for validation of bottom-level policy with memory.
+
+tasks:
+  # ===== M(1) Tasks: Single-Step, No Memory Required =====
+
+  - name: PushCube
+    type: M(1)
+    env_id: RMBench/PushCube-v1
+    goal: "Push the cube to the target location"
+    description: |
+      Single-step manipulation. Robot pushes cube from origin to goal.
+      Success: cube reaches target within tolerance.
+    difficulty: easy
+    num_episodes: 10
+
+  - name: PickCube
+    type: M(1)
+    env_id: RMBench/PickCube-v1
+    goal: "Pick up the cube and hold it"
+    description: |
+      Lift cube from surface and maintain grip.
+      Success: cube held above surface for 10 steps.
+    difficulty: easy
+    num_episodes: 10
+
+  - name: ReachTarget
+    type: M(1)
+    env_id: RMBench/ReachTarget-v1
+    goal: "Move the end-effector to the target location"
+    description: |
+      Point-to-point reaching task.
+      Success: end-effector position within target tolerance.
+    difficulty: easy
+    num_episodes: 10
+
+  - name: PushMultipleCubes
+    type: M(1)
+    env_id: RMBench/PushMultipleCubes-v1
+    goal: "Push all cubes to their respective target locations"
+    description: |
+      Extended single-step task with multiple objects.
+      Success: all cubes reach targets.
+    difficulty: medium
+    num_episodes: 10
+
+  - name: RotateObject
+    type: M(1)
+    env_id: RMBench/RotateObject-v1
+    goal: "Rotate the object to the target orientation"
+    description: |
+      In-hand manipulation without release.
+      Success: object reaches target orientation within tolerance.
+    difficulty: medium
+    num_episodes: 10
+
+  # ===== M(n) Tasks: Multi-Step with Memory =====
+
+  - name: PickPlace
+    type: M(n)
+    env_id: RMBench/PickPlace-v1
+    goal: "Pick up the cube from the source location and place it at the target"
+    num_steps: 2
+    description: |
+      Two-step task requiring memory of cube location and grasp status.
+      Step 1: Remember cube location, pick it up
+      Step 2: Carry to target, release
+      Memory: Track cube possession state.
+    difficulty: easy
+    num_episodes: 5
+
+  - name: StackBlocks
+    type: M(n)
+    env_id: RMBench/StackBlocks-v1
+    goal: "Stack blocks in target configuration"
+    num_steps: 3
+    description: |
+      Multi-step stacking task.
+      Step 1: Pick block 1
+      Step 2: Pick block 2
+      Step 3: Place on top of block 1
+      Memory: Track which blocks picked, which placed, remaining goals.
+    difficulty: medium
+    num_episodes: 5
+
+  - name: DrawShape
+    type: M(n)
+    env_id: RMBench/DrawShape-v1
+    goal: "Draw the target shape using a pen"
+    num_steps: 4
+    description: |
+      Sequential drawing task requiring shape memory.
+      Multiple line segments must be drawn in sequence.
+      Memory: Track completed lines, remaining shape segments.
+    difficulty: hard
+    num_episodes: 5
+
+  - name: ArrangeObjects
+    type: M(n)
+    env_id: RMBench/ArrangeObjects-v1
+    goal: "Arrange objects in target layout"
+    num_steps: 3
+    description: |
+      Complex rearrangement with spatial memory.
+      Memory: Track object positions, target layout, remaining moves.
+    difficulty: hard
+    num_episodes: 5
+
+  - name: FollowTrajectory
+    type: M(n)
+    env_id: RMBench/FollowTrajectory-v1
+    goal: "Trace the target trajectory with the end-effector"
+    num_steps: 5
+    description: |
+      Extended trajectory following with intermediate waypoints.
+      Memory: Track completed waypoints, remaining path.
+    difficulty: medium
+    num_episodes: 5
+
+  - name: AssemblyTask
+    type: M(n)
+    env_id: RMBench/Assembly-v1
+    goal: "Assemble components in specified order"
+    num_steps: 4
+    description: |
+      Sequential assembly with spatial constraints.
+      Memory: Track assembled parts, assembly order, pending steps.
+    difficulty: hard
+    num_episodes: 3
+
+# ===== Evaluation Configuration =====
+
+evaluation:
+  # Metrics to compute
+  metrics:
+    - success_rate      # Proportion of successful episodes
+    - avg_reward        # Average episode reward
+    - avg_steps         # Average steps to completion (M(n) only)
+    - action_smoothness # L2 norm of action second derivative
+    - memory_accuracy   # (M(n) only) Correctness of memory updates
+
+  # Output
+  output:
+    format: json        # Results format
+    save_episodes: true # Save full episode traces
+    save_videos: false  # Record video rollouts (expensive)
+
+  # Parallel evaluation
+  num_workers: 4
+
+  # Time limits
+  max_episode_steps: 100
+  episode_timeout_sec: 60
+
+# ===== Model Configuration =====
+
+model:
+  # Checkpoint path
+  checkpoint: checkpoints/low_level_best.pt
+
+  # Inference config
+  device: cuda
+  dtype: float32
+
+  # Action post-processing
+  action_scale: 1.0          # Scale predicted actions
+  action_clip: [-1.0, 1.0]   # Clip action range
+
+  # Memory
+  memory_enabled: true       # Enable memory for M(n) tasks
+  memory_type: rule_based    # Options: rule_based, vlm_based (future)
+
+  # Frame handling
+  frame_history_size: 5      # Frames to stack for video input
+  frame_resize: [224, 224]   # Resize frames to this size
+
+# ===== High-Level Policy (Optional) =====
+
+high_level:
+  enabled: false  # Set to true when high-level policy ready
+  checkpoint: checkpoints/high_level_best.pt
+  model_name: Qwen/Qwen2.5-VL-3B-Instruct

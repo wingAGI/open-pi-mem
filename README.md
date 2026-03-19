@@ -1,274 +1,158 @@
 # open-pi-mem
 
-An open reproduction of **MEM: Multi-Scale Embodied Memory for Vision Language Action Models**.
+`open-pi-mem` 目前聚焦在高层策略推理链路的验证，尤其是：
 
-A practical two-level hierarchical robot policy: plan what to do next (high-level) + execute action sequences (low-level).
+- 单帧高层推理：`goal + image + prev_memory -> next_subtask + next_memory`
+- RMBench 视频评测：把短视频片段送进 Gemini，观察高层状态更新
+- 本地 viewer：逐 step 查看输入 clip、prompt、prev memory、next subtask、next memory
 
-## Quick Start
+这版仓库保留了两套最终结果，方便直接对比：
+
+- `Gemini 3.1 Pro`
+- `Gemini Robotics-ER 1.5`
+
+结果目录在：
+
+- [data/eval_results/Gemini_3_1_Pro](/Users/hex/workspace/具身智能/open-pi-mem/data/eval_results/Gemini_3_1_Pro)
+- [data/eval_results/Gemini_Robotics_ER_1_5](/Users/hex/workspace/具身智能/open-pi-mem/data/eval_results/Gemini_Robotics_ER_1_5)
+
+## 1. 本地模型高层推理
+
+当前本地高层推理入口是：
+
+- [scripts/run_high_level_inference.py](/Users/hex/workspace/具身智能/open-pi-mem/scripts/run_high_level_inference.py)
+
+它支持：
+
+- 从 YAML 加载高层模型配置
+- 用 `--model-path` 覆盖成你自己的本地 VLM
+- 用 `--checkpoint` 加载微调权重
+
+如果你想直接用本地 `Qwen3-VL-8B` 做推理，可以参考：
 
 ```bash
-# Install
-pip install torch transformers datasets pyyaml
-
-# Test locally (no data needed)
-python scripts/generate_memory_data.py \
-  --input examples/episodes.sample.jsonl \
-  --output memory_supervision.jsonl \
-  --provider rule_based
-
-# Train high-level policy
-python scripts/train_high_level.py --config configs/high_level_vlm.yaml
-
-# Test inference
-python scripts/run_high_level_inference.py \
+PYTHONPATH=src python scripts/run_high_level_inference.py \
   --config configs/high_level_vlm.yaml \
+  --model-path /absolute/path/to/Qwen3-VL-8B-Instruct \
+  --local-files-only \
   --image examples/frames/frame_0.png \
-  --goal "open the fridge" \
+  --goal "pick up the target object" \
   --prev-memory "" \
-  --history-item "reached kitchen | status=success"
+  --planner-hz 1
 ```
 
-## Architecture
-
-### High-Level Policy
-- **Model:** Qwen/Qwen2.5-VL-3B-Instruct (vision-language model)
-- **Input:** current image, goal, past memory, subtask history
-- **Output:** structured text `<subtask>...</subtask><memory>...</memory>`
-- **Training:** causal language modeling on structured targets
-
-### Low-Level Policy
-- **Text:** Gemma-2-2b-it encoder → hidden states
-- **Vision:** SigLIP-base-patch16-224 + MEM temporal attention layers
-- **Fusion:** text + vision + proprioception → MLP → action predictions
-- **Outputs:**
-  - Action chunk regression (MSE loss)
-  - FAST token head (optional, cross-entropy)
-  - Flow matching auxiliary (optional, smooth L1)
-
-## Training
-
-### High-Level
+如果你已经有训练好的高层 checkpoint，可以继续加：
 
 ```bash
-python scripts/train_high_level.py --config configs/high_level_vlm.yaml
+--checkpoint /path/to/high_level_checkpoint.pt
 ```
 
-**Config:** `configs/high_level_vlm.yaml`
-- Model: Qwen/Qwen2.5-VL-3B-Instruct
-- Learning rate: 2.0e-5
-- Batch size: 1
-- Precision: bf16
+仓库里也放了一个本地模型配置示例：
 
-**Data format (JSONL):**
-```json
-{
-  "goal": "pick up the mug",
-  "previous_memory": "found mug in sink",
-  "history": [
-    {"subtask": "reach sink", "status": "success"},
-    {"subtask": "grasp mug", "status": "unknown"}
-  ],
-  "subtask": "lift mug",
-  "memory": "mug lifted from sink"
-}
-```
+- [configs/high_level_qwen3_vl_8b_local.example.yaml](/Users/hex/workspace/具身智能/open-pi-mem/configs/high_level_qwen3_vl_8b_local.example.yaml)
 
-### Low-Level
+## 2. Google Gemini 视频推理
+
+当前主入口是：
+
+- [scripts/run_rmbench_high_level_episode_gemini_sdk_video.py](/Users/hex/workspace/具身智能/open-pi-mem/scripts/run_rmbench_high_level_episode_gemini_sdk_video.py)
+
+这个脚本会：
+
+- 读取一个 RMBench `episode0.mp4`
+- 按规划频率切成短视频 clip
+- 把 clip 送给 Gemini
+- 输出 `report.json`
+- 抽出每个 step 的预览帧，供 viewer 查看
+
+说明：
+
+- 下面这条命令依赖你本地已经准备好 `data/rmbench_local/...` 里的 RMBench 原始视频与 instruction JSON。
+- 仓库默认不提交这部分原始数据，只提交最终可视化结果。
+
+先设置 API key：
 
 ```bash
-python scripts/train_low_level.py --config configs/low_level.yaml
+export GEMINI_API_KEY=your_key
 ```
 
-**Config:** `configs/low_level.yaml`
-- Text model: google/gemma-2-2b-it
-- Vision model: google/siglip-base-patch16-224
-- Action dim: 14 (robot-specific)
-- Action horizon: 16 (predict 16 steps ahead)
-- Learning rate: 1.0e-4
-- Batch size: 1
-
-**Data format (JSONL):**
-```json
-{
-  "instruction": "pick up the mug",
-  "frames": ["frame_0.png", "frame_1.png", ...],
-  "proprio": [[a1, a2, ...], ...],
-  "actions": [[a1, a2, ...], ...]
-}
-```
-
-## Data Preparation
-
-### High-Level Supervision
-
-**From raw episodes (automatic generation):**
+然后运行一个示例：
 
 ```bash
-# Using local rules (no API)
-python scripts/generate_memory_data.py \
-  --input episodes.jsonl \
-  --output memory_supervision.jsonl \
-  --provider rule_based
-
-# Using OpenAI-compatible API
-export OPENAI_API_KEY=...
-python scripts/generate_memory_data.py \
-  --input episodes.jsonl \
-  --output memory_supervision.jsonl \
-  --provider openai_compatible \
-  --model gpt-4-mini
+PYTHONPATH=src python scripts/run_rmbench_high_level_episode_gemini_sdk_video.py \
+  --video data/rmbench_local/observe_and_pickup_demo_clean/episode0.mp4 \
+  --instruction-json data/rmbench_local/observe_and_pickup_demo_clean/episode0.json \
+  --hz 1 \
+  --model gemini-3.1-pro-preview \
+  --max-output-tokens 10000 \
+  --update-memory \
+  --report-dir data/eval_results/demo_observe_and_pickup
 ```
 
-**Manual annotation (web UI):**
+也可以把模型换成：
 
 ```bash
-python scripts/run_annotation_app.py --port 8765
-# Open http://127.0.0.1:8765
+--model gemini-robotics-er-1.5-preview
 ```
 
-Then export as memory supervision:
-```bash
-python scripts/generate_manual_high_level_data.py \
-  --input data/manual_annotations/episodes \
-  --output memory_supervision.manual.jsonl \
-  --provider openai_compatible \
-  --model gpt-4-mini
-```
+## 3. Viewer 使用方式
 
-### Low-Level Data (Robot Trajectories)
+viewer 入口：
 
-**From DROID or Bridge V2 datasets:**
+- [scripts/run_test_viewer_app.py](/Users/hex/workspace/具身智能/open-pi-mem/scripts/run_test_viewer_app.py)
+
+启动：
 
 ```bash
-# Requires local TFDS export (see DROID/Bridge V2 docs)
-python scripts/prepare_open_dataset.py \
-  --dataset droid \
-  --data-dir /path/to/tfds \
-  --output low_level_rollouts.jsonl
+python scripts/run_test_viewer_app.py --host 127.0.0.1 --port 8766
 ```
 
-## Inference
+打开一个结果：
 
-### High-Level Planning
-
-```bash
-python scripts/run_high_level_inference.py \
-  --config configs/high_level_vlm.yaml \
-  --image /path/to/frame.jpg \
-  --goal "put the milk on the counter" \
-  --prev-memory "opened the fridge" \
-  --history-item "reach for fridge handle | status=success" \
-  --history-item "pull fridge door | status=success"
+```text
+http://127.0.0.1:8766/?report=data/eval_results/Gemini_3_1_Pro/press_button/report.json
 ```
 
-### Low-Level Execution
+或者：
 
-Currently training-only. To add inference:
-- Load checkpoint: `model.load_state_dict(torch.load(ckpt))`
-- Forward pass: `outputs = model(input_ids, video, proprio)`
-- Extract actions: `outputs["action_chunk"]`
-
-## Configuration
-
-Key settings in YAML configs:
-
-**High-level (`high_level_vlm.yaml`):**
-```yaml
-model:
-  multimodal_backbone_name: Qwen/Qwen2.5-VL-3B-Instruct
-  freeze_text_backbone: false
-data:
-  train_jsonl: memory_supervision.jsonl
-  max_total_tokens: 1024
-trainer:
-  learning_rate: 2.0e-5
-  batch_size: 1
+```text
+http://127.0.0.1:8766/?report=data/eval_results/Gemini_Robotics_ER_1_5/observe_and_pickup/report.json
 ```
 
-**Low-level (`low_level.yaml`):**
-```yaml
-model:
-  backbone_name: google/gemma-2-2b-it
-  vision_tower_name: google/siglip-base-patch16-224
-  action_dim: 14
-  action_chunk_horizon: 16
-  use_fast_head: true
-loss:
-  action_mse_weight: 1.0
-  fast_token_weight: 1.0
-  flow_matching_weight: 1.0
-```
+viewer 里能看到：
 
-## Repository Structure
+- 当前 step 的输入帧动图
+- 当前 step 的输入帧缩略图
+- `Goal`
+- `Previous Memory`
+- `Next Subtask`
+- `Next Memory`
+- 完整 `Prompt`
+- 原始 `Raw Output`
 
-```
-open-pi-mem/
-├── configs/                 # YAML experiment configs
-├── scripts/                 # Training and data scripts
-├── src/open_pi_mem/
-│   ├── models/             # Policy architectures
-│   ├── training/           # Trainers and loss functions
-│   ├── data/               # Dataset loaders and adapters
-│   └── utils/              # Config and I/O utilities
-├── examples/               # Sample data for testing
-├── docs/                   # Design notes
-└── README.md
-```
+## 4. 代码入口
 
-## Design Choices
+主要保留的文件：
 
-See `docs/design.md` for rationale. Key decisions:
+- [scripts/run_high_level_inference.py](/Users/hex/workspace/具身智能/open-pi-mem/scripts/run_high_level_inference.py)
+- [scripts/run_rmbench_high_level_episode_gemini_sdk_video.py](/Users/hex/workspace/具身智能/open-pi-mem/scripts/run_rmbench_high_level_episode_gemini_sdk_video.py)
+- [scripts/run_rmbench_eval.py](/Users/hex/workspace/具身智能/open-pi-mem/scripts/run_rmbench_eval.py)
+- [scripts/run_test_viewer_app.py](/Users/hex/workspace/具身智能/open-pi-mem/scripts/run_test_viewer_app.py)
+- [src/open_pi_mem/rmbench/adapter.py](/Users/hex/workspace/具身智能/open-pi-mem/src/open_pi_mem/rmbench/adapter.py)
+- [web/viewer](/Users/hex/workspace/具身智能/open-pi-mem/web/viewer)
 
-- **Separate backbones:** high and low policies have independent text/vision encoders
-- **VLM initialization:** both policies initialized from pretrained VLMs (not random)
-- **Structured high-level output:** causal LM on `<subtask>...</subtask><memory>...</memory>` (not classification)
-- **Detached action expert:** gradients from action prediction don't flow into vision/text backbone
-- **Multi-loss training:** action MSE + optional FAST tokens + optional flow matching
+旧的多帧实验脚本已经移到：
 
-## Testing
+- [scripts/archive](/Users/hex/workspace/具身智能/open-pi-mem/scripts/archive)
 
-**Smoke test with included examples:**
+## 5. 仓库说明
 
-```bash
-# ~3 minutes total, validates the full pipeline
-python scripts/generate_memory_data.py \
-  --input examples/episodes.sample.jsonl \
-  --output examples/memory_supervision.sample.jsonl \
-  --provider rule_based
+当前仓库默认不提交原始 RMBench 本地视频数据：
 
-python scripts/train_high_level.py --config configs/high_level_vlm.yaml
-python scripts/train_low_level.py --config configs/low_level.yaml
-```
+- [data/rmbench_local](/Users/hex/workspace/具身智能/open-pi-mem/data/rmbench_local)
 
-This verifies:
-- Data loading and preprocessing
-- Model initialization
-- Training loop (forward pass, backward pass, optimization)
-- Schema validation
+但保留了最终可视化结果：
 
-Does not verify:
-- Real-world task success (need real robot data)
-- Convergence or meaningful learning (10 training steps is too few)
+- [data/eval_results](/Users/hex/workspace/具身智能/open-pi-mem/data/eval_results)
 
-## Not Yet Implemented
-
-- **Low-level inference script** (just training for now)
-- **Multi-stage/joint training** (separate training only)
-- **Distributed training** (FSDP/DDP)
-- **Evaluation metrics** (success rate, trajectory metrics)
-- **Real-time robot control** (policy only, no hardware integration)
-
-## Citation
-
-```bibtex
-@article{nasiriany2024mem,
-  title={MEM: Multi-Scale Embodied Memory for Vision Language Action Models},
-  author={Nasiriany, Sameh and others},
-  journal={arXiv preprint arXiv:2407.09762},
-  year={2024}
-}
-```
-
-## License
-
-MIT
+这样更适合直接在 GitHub 上分享最终对比结果，同时避免把原始 episode 数据一起带上去。

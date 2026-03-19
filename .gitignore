@@ -1,4 +1,5 @@
 __pycache__/
+scripts/__pycache__/
 *.py[cod]
 *.so
 .Python
@@ -19,3 +20,4 @@ dist/
 open_pi_mem_cache/
 outputs/
 checkpoints/
+data/rmbench_local/

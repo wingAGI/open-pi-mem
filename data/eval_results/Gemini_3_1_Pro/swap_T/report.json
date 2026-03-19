@@ -1,0 +1,376 @@
+{
+  "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+  "source": "/Users/hex/workspace/具身智能/open-pi-mem/data/rmbench_local/swap_T_demo_clean/episode0.mp4",
+  "source_fps_assumed": 30.0,
+  "source_duration_sec": 11.533333,
+  "planner_hz": 1.0,
+  "sampled_frames": 12,
+  "model_path": "gemini-3.1-flash-lite-preview",
+  "provider": "gemini-sdk-video",
+  "records": [
+    {
+      "frame_index": 0,
+      "timestamp_sec": 0.0,
+      "image_path": "preview_frames/step_000/frame_001.png",
+      "input_image_paths": [
+        "preview_frames/step_000/frame_001.png"
+      ],
+      "input_frame_timestamps_sec": [
+        0.025
+      ],
+      "input_video_path": "clips/step_000.mp4",
+      "input_clip_start_sec": 0.0,
+      "input_clip_end_sec": 0.05,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 0.\nThis clip covers time 0.00s to 0.05s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: None\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Pick up the red T-block.</subtask>\n<memory>The robot is in the initial state. The red and blue T-blocks are on the table.</memory>",
+      "thought_summary": "**My Initial Assessment and Planning for the T-Block Swap**\n\nOkay, the user wants me to figure out the next step for a robot to swap the positions and orientations of two T-blocks, given a short video clip and the goal \"Swap the poses of the two T-blocks.\" This is inference step 0, and the video is barely a blip – just the initial state: a red and blue T-block on a white table, robot gripper visible on the left. Previous memory is \"None,\" which is expected at the start.\n\nThe overall task is to swap the T-blocks, which clearly requires a multi-step approach. My immediate thought is, like I'd approach the problem, the robot has to pick up *one* of the blocks, move it, then pick up the other and place it where the first block was, then move the first block to where the second one was. Standard planning.\n\nGiven this incredibly short clip, the robot hasn't *done* anything yet. It's observing the initial scene. So, the very next subtask is *pick something up*. Let's look at the gripper's position. It's on the left, so the red T-block seems like the more direct pick. So, the first subtask *should* be to \"Pick up the red T-block.\"\n\nMy thinking on memory is simpler. Nothing's changed. The robot is observing the initial state: red and blue T-blocks on the table, no action has started. So, my memory for this step is \"The robot is in the initial state. The red and blue T-blocks are on the table.\"\n\nI'm keeping it simple and direct. The subtask is: \"Pick up the red T-block.\" And the memory for the next state is: \"The robot is in the initial state. The red and blue T-blocks are on the table.\" That captures the relevant information for the next step.",
+      "thoughts_token_count": 468,
+      "thought_signature_present": true,
+      "next_subtask": "Pick up the red T-block.",
+      "next_memory": "The robot is in the initial state. The red and blue T-blocks are on the table."
+    },
+    {
+      "frame_index": 1,
+      "timestamp_sec": 1.0,
+      "image_path": "preview_frames/step_001/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_001/frame_001.png",
+        "preview_frames/step_001/frame_002.png",
+        "preview_frames/step_001/frame_003.png",
+        "preview_frames/step_001/frame_004.png",
+        "preview_frames/step_001/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        0.0,
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "input_video_path": "clips/step_001.mp4",
+      "input_clip_start_sec": 0.0,
+      "input_clip_end_sec": 1.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The robot is in the initial state. The red and blue T-blocks are on the table.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 1.\nThis clip covers time 0.00s to 1.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The robot is in the initial state. The red and blue T-blocks are on the table.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Grasp the red T-block and the blue T-block</subtask>\n<memory>The robot is approaching the red T-block and the blue T-block.</memory>",
+      "thought_summary": "**Analyzing the Robot's Initial Action**\n\nOkay, the objective is clear: swap the positions and orientations of the red and blue T-blocks. Let's break this down. My memory confirms the robot is in its initial state. The video feed indicates gripper movement. Initially, my mind was focused on the left gripper moving towards the red block. But hold on, the right gripper is also moving! \n\nLet's re-examine the video. At the start (00:00), it's evident that the left gripper goes for the red T-block and the right goes for the blue. It's becoming clearer. Based on the video, the likely immediate subtask is to *Grasp the red T-block* or maybe *Grasp the red T-block and the blue T-block*. Given that both grippers are moving and assuming the goal is to swap poses. I think, *Grasp the red T-block and the blue T-block* is the right subtask.\n\nI am refining this into my internal model, both grippers are moving towards the blocks. My memory captures that the robot is approaching both blocks. With the updated prompt, I confirm that it is a bimanual task. The most likely subtask at this stage? *Grasp the red T-block and the blue T-block*. This fits the observed behavior and the overall goal.",
+      "thoughts_token_count": 563,
+      "thought_signature_present": true,
+      "next_subtask": "Grasp the red T-block and the blue T-block",
+      "next_memory": "The robot is approaching the red T-block and the blue T-block."
+    },
+    {
+      "frame_index": 2,
+      "timestamp_sec": 2.0,
+      "image_path": "preview_frames/step_002/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_002/frame_001.png",
+        "preview_frames/step_002/frame_002.png",
+        "preview_frames/step_002/frame_003.png",
+        "preview_frames/step_002/frame_004.png",
+        "preview_frames/step_002/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0
+      ],
+      "input_video_path": "clips/step_002.mp4",
+      "input_clip_start_sec": 1.0,
+      "input_clip_end_sec": 2.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The robot is approaching the red T-block and the blue T-block.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 2.\nThis clip covers time 1.00s to 2.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The robot is approaching the red T-block and the blue T-block.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Lift the red T-block and the blue T-block.</subtask>\n<memory>The robot has grasped the red T-block and the blue T-block.</memory>",
+      "thought_summary": "**Current State Analysis and Subtask Definition**\n\nOkay, here's the situation: the objective is a straightforward T-block swap – red for blue, blue for red. Looking back at the prior memory, the robot was in the process of approaching both blocks. Now, analyzing this 1-second video segment (1.00s to 2.00s), the left arm has firmly secured the red T-block, and the right arm has the blue. The grippers are closed, which is good. My immediate thought is, \"Next step: lift.\" I need to update the memory accordingly to reflect the successful grasping of both blocks. This leads me directly to defining the next subtask: to actually lift both T-blocks simultaneously. Let's confirm that grasp by re-examining the video. Yes, the grippers are definitely closed. Therefore: The current subtask is \"Lift the red T-block and the blue T-block\" and my updated memory is that \"The robot has grasped the red T-block and the blue T-block.\"",
+      "thoughts_token_count": 189,
+      "thought_signature_present": true,
+      "next_subtask": "Lift the red T-block and the blue T-block.",
+      "next_memory": "The robot has grasped the red T-block and the blue T-block."
+    },
+    {
+      "frame_index": 3,
+      "timestamp_sec": 3.0,
+      "image_path": "preview_frames/step_003/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_003/frame_001.png",
+        "preview_frames/step_003/frame_002.png",
+        "preview_frames/step_003/frame_003.png",
+        "preview_frames/step_003/frame_004.png",
+        "preview_frames/step_003/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        2.0,
+        2.25,
+        2.5,
+        2.75,
+        3.0
+      ],
+      "input_video_path": "clips/step_003.mp4",
+      "input_clip_start_sec": 2.0,
+      "input_clip_end_sec": 3.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The robot has grasped the red T-block and the blue T-block.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 3.\nThis clip covers time 2.00s to 3.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The robot has grasped the red T-block and the blue T-block.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Move the red T-block to the blue T-block's initial position.</subtask>\n<memory>The robot has grasped both the red and blue T-blocks and is ready to initiate the swap.</memory>",
+      "thought_summary": "",
+      "thoughts_token_count": null,
+      "thought_signature_present": true,
+      "next_subtask": "Move the red T-block to the blue T-block's initial position.",
+      "next_memory": "The robot has grasped both the red and blue T-blocks and is ready to initiate the swap."
+    },
+    {
+      "frame_index": 4,
+      "timestamp_sec": 4.0,
+      "image_path": "preview_frames/step_004/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_004/frame_001.png",
+        "preview_frames/step_004/frame_002.png",
+        "preview_frames/step_004/frame_003.png",
+        "preview_frames/step_004/frame_004.png",
+        "preview_frames/step_004/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        3.0,
+        3.25,
+        3.5,
+        3.75,
+        4.0
+      ],
+      "input_video_path": "clips/step_004.mp4",
+      "input_clip_start_sec": 3.0,
+      "input_clip_end_sec": 4.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The robot has grasped both the red and blue T-blocks and is ready to initiate the swap.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 4.\nThis clip covers time 3.00s to 4.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The robot has grasped both the red and blue T-blocks and is ready to initiate the swap.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Move the red T-block to the blue T-block's initial position.</subtask>\n<memory>The robot is holding both T-blocks and has begun the swapping motion.</memory>",
+      "thought_summary": "",
+      "thoughts_token_count": null,
+      "thought_signature_present": true,
+      "next_subtask": "Move the red T-block to the blue T-block's initial position.",
+      "next_memory": "The robot is holding both T-blocks and has begun the swapping motion."
+    },
+    {
+      "frame_index": 5,
+      "timestamp_sec": 5.0,
+      "image_path": "preview_frames/step_005/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_005/frame_001.png",
+        "preview_frames/step_005/frame_002.png",
+        "preview_frames/step_005/frame_003.png",
+        "preview_frames/step_005/frame_004.png",
+        "preview_frames/step_005/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        4.0,
+        4.25,
+        4.5,
+        4.75,
+        5.0
+      ],
+      "input_video_path": "clips/step_005.mp4",
+      "input_clip_start_sec": 4.0,
+      "input_clip_end_sec": 5.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The robot is holding both T-blocks and has begun the swapping motion.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 5.\nThis clip covers time 4.00s to 5.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The robot is holding both T-blocks and has begun the swapping motion.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Place the red T-block at the blue T-block's original position.</subtask>\n<memory>The robot is holding both T-blocks and has moved them to the center of the workspace to initiate the swap.</memory>",
+      "thought_summary": "",
+      "thoughts_token_count": null,
+      "thought_signature_present": true,
+      "next_subtask": "Place the red T-block at the blue T-block's original position.",
+      "next_memory": "The robot is holding both T-blocks and has moved them to the center of the workspace to initiate the swap."
+    },
+    {
+      "frame_index": 6,
+      "timestamp_sec": 6.0,
+      "image_path": "preview_frames/step_006/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_006/frame_001.png",
+        "preview_frames/step_006/frame_002.png",
+        "preview_frames/step_006/frame_003.png",
+        "preview_frames/step_006/frame_004.png",
+        "preview_frames/step_006/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        5.0,
+        5.25,
+        5.5,
+        5.75,
+        6.0
+      ],
+      "input_video_path": "clips/step_006.mp4",
+      "input_clip_start_sec": 5.0,
+      "input_clip_end_sec": 6.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The robot is holding both T-blocks and has moved them to the center of the workspace to initiate the swap.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 6.\nThis clip covers time 5.00s to 6.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The robot is holding both T-blocks and has moved them to the center of the workspace to initiate the swap.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Place the blue T-block at the red T-block's original position.</subtask>\n<memory>The robot is holding both T-blocks at the center of the workspace, ready to place them in their new positions.</memory>",
+      "thought_summary": "",
+      "thoughts_token_count": null,
+      "thought_signature_present": true,
+      "next_subtask": "Place the blue T-block at the red T-block's original position.",
+      "next_memory": "The robot is holding both T-blocks at the center of the workspace, ready to place them in their new positions."
+    },
+    {
+      "frame_index": 7,
+      "timestamp_sec": 7.0,
+      "image_path": "preview_frames/step_007/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_007/frame_001.png",
+        "preview_frames/step_007/frame_002.png",
+        "preview_frames/step_007/frame_003.png",
+        "preview_frames/step_007/frame_004.png",
+        "preview_frames/step_007/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        6.0,
+        6.25,
+        6.5,
+        6.75,
+        7.0
+      ],
+      "input_video_path": "clips/step_007.mp4",
+      "input_clip_start_sec": 6.0,
+      "input_clip_end_sec": 7.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The robot is holding both T-blocks at the center of the workspace, ready to place them in their new positions.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 7.\nThis clip covers time 6.00s to 7.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The robot is holding both T-blocks at the center of the workspace, ready to place them in their new positions.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Place the blue T-block at the target position on the left.</subtask>\n<memory>The robot is holding both T-blocks and is moving to place the blue T-block at the left target position.</memory>",
+      "thought_summary": "",
+      "thoughts_token_count": null,
+      "thought_signature_present": true,
+      "next_subtask": "Place the blue T-block at the target position on the left.",
+      "next_memory": "The robot is holding both T-blocks and is moving to place the blue T-block at the left target position."
+    },
+    {
+      "frame_index": 8,
+      "timestamp_sec": 8.0,
+      "image_path": "preview_frames/step_008/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_008/frame_001.png",
+        "preview_frames/step_008/frame_002.png",
+        "preview_frames/step_008/frame_003.png",
+        "preview_frames/step_008/frame_004.png",
+        "preview_frames/step_008/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        7.0,
+        7.25,
+        7.5,
+        7.75,
+        8.0
+      ],
+      "input_video_path": "clips/step_008.mp4",
+      "input_clip_start_sec": 7.0,
+      "input_clip_end_sec": 8.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The robot is holding both T-blocks and is moving to place the blue T-block at the left target position.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 8.\nThis clip covers time 7.00s to 8.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The robot is holding both T-blocks and is moving to place the blue T-block at the left target position.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Place the blue T-block at the left target position.</subtask>\n<memory>The robot is holding both T-blocks and is currently positioning the blue T-block at the left target location.</memory>",
+      "thought_summary": "",
+      "thoughts_token_count": null,
+      "thought_signature_present": true,
+      "next_subtask": "Place the blue T-block at the left target position.",
+      "next_memory": "The robot is holding both T-blocks and is currently positioning the blue T-block at the left target location."
+    },
+    {
+      "frame_index": 9,
+      "timestamp_sec": 9.0,
+      "image_path": "preview_frames/step_009/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_009/frame_001.png",
+        "preview_frames/step_009/frame_002.png",
+        "preview_frames/step_009/frame_003.png",
+        "preview_frames/step_009/frame_004.png",
+        "preview_frames/step_009/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        8.0,
+        8.25,
+        8.5,
+        8.75,
+        9.0
+      ],
+      "input_video_path": "clips/step_009.mp4",
+      "input_clip_start_sec": 8.0,
+      "input_clip_end_sec": 9.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The robot is holding both T-blocks and is currently positioning the blue T-block at the left target location.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 9.\nThis clip covers time 8.00s to 9.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The robot is holding both T-blocks and is currently positioning the blue T-block at the left target location.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Release the blue T-block at the left target location.</subtask>\n<memory>The robot has positioned the blue T-block at the left target location and is holding it in place.</memory>",
+      "thought_summary": "",
+      "thoughts_token_count": null,
+      "thought_signature_present": true,
+      "next_subtask": "Release the blue T-block at the left target location.",
+      "next_memory": "The robot has positioned the blue T-block at the left target location and is holding it in place."
+    },
+    {
+      "frame_index": 10,
+      "timestamp_sec": 10.0,
+      "image_path": "preview_frames/step_010/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_010/frame_001.png",
+        "preview_frames/step_010/frame_002.png",
+        "preview_frames/step_010/frame_003.png",
+        "preview_frames/step_010/frame_004.png",
+        "preview_frames/step_010/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        9.0,
+        9.25,
+        9.5,
+        9.75,
+        10.0
+      ],
+      "input_video_path": "clips/step_010.mp4",
+      "input_clip_start_sec": 9.0,
+      "input_clip_end_sec": 10.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The robot has positioned the blue T-block at the left target location and is holding it in place.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 10.\nThis clip covers time 9.00s to 10.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The robot has positioned the blue T-block at the left target location and is holding it in place.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Release the blue T-block at the left target location.</subtask>\n<memory>The blue T-block is positioned at the left target location and is currently being held by the gripper.</memory>",
+      "thought_summary": "",
+      "thoughts_token_count": null,
+      "thought_signature_present": true,
+      "next_subtask": "Release the blue T-block at the left target location.",
+      "next_memory": "The blue T-block is positioned at the left target location and is currently being held by the gripper."
+    },
+    {
+      "frame_index": 11,
+      "timestamp_sec": 11.0,
+      "image_path": "preview_frames/step_011/frame_005.png",
+      "input_image_paths": [
+        "preview_frames/step_011/frame_001.png",
+        "preview_frames/step_011/frame_002.png",
+        "preview_frames/step_011/frame_003.png",
+        "preview_frames/step_011/frame_004.png",
+        "preview_frames/step_011/frame_005.png"
+      ],
+      "input_frame_timestamps_sec": [
+        10.0,
+        10.25,
+        10.5,
+        10.75,
+        11.0
+      ],
+      "input_video_path": "clips/step_011.mp4",
+      "input_clip_start_sec": 10.0,
+      "input_clip_end_sec": 11.0,
+      "goal": "Swap the poses of the two T-blocks, including both position and orientation.",
+      "input_memory": "The blue T-block is positioned at the left target location and is currently being held by the gripper.",
+      "prompt": "You are the high-level planner for a robot policy.\nYou are given a short video clip from an ongoing execution.\nThe clip covers the most recent planning interval.\nThe first planning call may contain only a near-instant initial observation because there is no earlier visual history yet.\nYou are called once every 1.000 Hz planning step.\nThis is inference step 11.\nThis clip covers time 10.00s to 11.00s.\nInputs:\n- Goal: the global task objective for the whole episode.\n- Previous memory: the state before this clip. It may be incomplete or wrong.\n- Current video clip: the most recent visual evidence over the latest planning interval.\nOutputs:\n- Memory: the state at the end of this clip.\n- Subtask: the single immediate next action to execute after this clip ends.\nDecision process:\n- First determine what changed during this clip.\n- Then update memory to reflect the end of this clip.\n- Then choose the next subtask.\nConstraints:\n- Use the video clip as the main evidence.\n- Reason about what action was being attempted, whether it likely succeeded, whether the stage is finished, and what state changed.\n- Subtask should be the very next executable action.\n- Keep subtask atomic and do not bundle multiple repetitions or multiple stages.\n- Memory should include only completed progress and current in-progress state at the end of this clip.\n- If an action has clearly finished within this clip, memory should describe it as completed.\n- If the action is still being executed or the completion is uncertain, memory should describe it as in progress.\n- Do not describe an in-progress action as completed.\n- Memory should not restate the full task requirements, future plan, or long explanations.\nReturn exactly two lines and nothing else.\nLine 1 format: <subtask>...</subtask>\nLine 2 format: <memory>...</memory>\nGoal: Swap the poses of the two T-blocks, including both position and orientation.\nPrevious memory: The blue T-block is positioned at the left target location and is currently being held by the gripper.\nPredict the next subtask and next memory.\n",
+      "raw_output": "<subtask>Place the blue T-block at the right target location.</subtask>\n<memory>The blue T-block is held by the gripper and is being moved toward the right target location.</memory>",
+      "thought_summary": "",
+      "thoughts_token_count": null,
+      "thought_signature_present": true,
+      "next_subtask": "Place the blue T-block at the right target location.",
+      "next_memory": "The blue T-block is held by the gripper and is being moved toward the right target location."
+    }
+  ]
+}
